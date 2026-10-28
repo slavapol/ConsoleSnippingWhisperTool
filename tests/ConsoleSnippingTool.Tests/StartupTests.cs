@@ -167,5 +167,34 @@ public class StartupTests
         Assert.Equal(expected, fake.Calls);
     }
 
+    [Fact]
+    public void A_config_file_that_cannot_be_written_is_reported_with_a_balloon_and_startup_continues_with_defaults()
+    {
+        var fake = new FakePlatform { ConfigText = null, WriteConfigThrows = true };
+        var core = new SnipperCore(fake);
+
+        core.Start();
+
+        var balloon = Assert.Single(fake.Calls.Where(call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal)));
+        Assert.Equal("ShowBalloon(ConsoleSnippingTool: config.json could not be written: Access to the path 'config.json' is denied; continuing with defaults)", balloon);
+        Assert.Contains("RegisterHotkey(Ctrl+Win+Z)", fake.Calls);
+        Assert.Contains("SetTrayMenuState(showEnabled:true,hideEnabled:false)", fake.Calls);
+    }
+
+    [Fact]
+    public void An_unhandled_exception_is_shown_as_a_balloon_and_logged_instead_of_crashing()
+    {
+        var fake = new FakePlatform();
+        var core = new SnipperCore(fake, () => new DateTime(2026, 10, 28, 9, 5, 7));
+        core.Start();
+        fake.Calls.Clear();
+
+        core.OnUnhandledException(new InvalidOperationException("boom"));
+        core.OnShow();
+
+        Assert.Equal(["ShowBalloon(ConsoleSnippingTool: Unhandled error: InvalidOperationException: boom)"], fake.Calls.TakeWhile(call => call != "ShowConsole()"));
+        Assert.Contains("WriteConsoleLine(09:05:07 Unhandled error: InvalidOperationException: boom)", fake.Calls);
+    }
+
     private static string? Normalise(string? text) => text?.ReplaceLineEndings("\n").TrimEnd();
 }

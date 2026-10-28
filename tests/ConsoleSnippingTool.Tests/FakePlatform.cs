@@ -41,6 +41,9 @@ public sealed class FakePlatform : IPlatform
     /// Per-signal result of TrySetSound; a missing signal means true.
     public Dictionary<Signal, bool> SoundLoadResults { get; set; } = new();
 
+    /// When true, WriteConfigText records the call and then throws, as the real file write does on a read-only exe folder.
+    public bool WriteConfigThrows { get; set; }
+
     /// The json of the last WriteConfigText call, for assertions that do not want to match the whole Calls entry.
     public string? WrittenConfigText { get; private set; }
 
@@ -73,6 +76,11 @@ public sealed class FakePlatform : IPlatform
     public void WriteConfigText(string json)
     {
         Record($"WriteConfigText({json})");
+        if (WriteConfigThrows)
+        {
+            throw new UnauthorizedAccessException("Access to the path 'config.json' is denied.");
+        }
+
         WrittenConfigText = json;
     }
 

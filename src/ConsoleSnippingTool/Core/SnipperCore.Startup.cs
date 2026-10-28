@@ -35,7 +35,17 @@ public sealed partial class SnipperCore
         var text = _platform.ReadConfigText();
         if (text is null)
         {
-            _platform.WriteConfigText(new Config().ToJson());
+            try
+            {
+                _platform.WriteConfigText(new Config().ToJson());
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                // A read-only exe folder is not a reason to refuse to start (spec: Configuration).
+                var message = $"{Config.FileName} could not be written: {e.Message.TrimEnd('.')}; continuing with defaults";
+                _platform.ShowBalloon(ToolName, message);
+                Log(message);
+            }
         }
 
         var (config, problems) = Config.Load(text);
@@ -96,5 +106,14 @@ public sealed partial class SnipperCore
         _platform.UnregisterHotkey();
         _platform.RemoveTrayIcon();
         _platform.Exit();
+    }
+
+    /// An exception nothing else caught, handed over by Program from the message loop or another thread: the user is
+    /// told and the tool keeps running rather than dying silently.
+    public void OnUnhandledException(Exception exception)
+    {
+        var message = $"Unhandled error: {exception.GetType().Name}: {exception.Message}";
+        _platform.ShowBalloon(ToolName, message);
+        Log(message);
     }
 }

@@ -4,7 +4,7 @@ namespace ConsoleSnippingTool.Core;
 
 /// The state machine behind the tool. It receives events from the Win32 adapter through its public On* methods and
 /// answers only by calling <see cref="IPlatform"/>. Split over several files so tickets edit disjoint parts:
-/// Startup (Start, replace, exit), Capture (Hotkey, Corners, cancel) and Console (Show, Hide).
+/// Startup (Start, replace, exit, unhandled errors), Capture (Hotkey, Corners, cancel) and Console (Show, Hide).
 public sealed partial class SnipperCore
 {
     public const string ToolName = "ConsoleSnippingTool";
