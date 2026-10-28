@@ -16,9 +16,11 @@ public sealed partial class SnipperCore
             return;
         }
 
-        _platform.InstallMouseHook();
-        _platform.RegisterCancelKey();
+        // The hook last of the three: once it is in, the user's clicks are swallowed, so nothing that could fail is
+        // left between it and Armed.
         _platform.StartArmedTimer(ArmedTimeout);
+        _platform.RegisterCancelKey();
+        _platform.InstallMouseHook();
         _platform.PlaySound(Signal.Ready);
         _state = State.Armed;
         Log("Armed");

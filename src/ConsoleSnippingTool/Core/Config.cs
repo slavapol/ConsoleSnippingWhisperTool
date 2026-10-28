@@ -12,6 +12,11 @@ public sealed record Config
 
     public int ArmedTimeoutSeconds { get; init; } = 30;
 
+    // An hour is more than any forgotten Hotkey press deserves, and far below where the adapter's millisecond
+    // timer interval would overflow.
+    private const int MinArmedTimeoutSeconds = 1;
+    private const int MaxArmedTimeoutSeconds = 3600;
+
     public SoundSource ReadySound { get; init; } = new SoundSource.BuiltIn();
 
     public SoundSource CornerSound { get; init; } = new SoundSource.BuiltIn();
@@ -134,12 +139,13 @@ public sealed record Config
             return fallback;
         }
 
-        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var seconds) && seconds > 0)
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var seconds)
+            && seconds is >= MinArmedTimeoutSeconds and <= MaxArmedTimeoutSeconds)
         {
             return seconds;
         }
 
-        problems.Add(Invalid(field, value, "is not a positive integer", fallback.ToString()));
+        problems.Add(Invalid(field, value, $"is not an integer from {MinArmedTimeoutSeconds} to {MaxArmedTimeoutSeconds}", fallback.ToString()));
         return fallback;
     }
 

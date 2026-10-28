@@ -51,6 +51,8 @@ public class ConfigTests
     [InlineData("0")]
     [InlineData("-3")]
     [InlineData("\"ten\"")]
+    [InlineData("3601")]
+    [InlineData("100000000")] // would overflow the adapter's millisecond timer interval
     public void A_bad_Armed_timeout_falls_back_to_30_with_a_balloon_while_a_valid_Hotkey_in_the_same_file_is_honoured(string timeout)
     {
         var json = $$"""{ "hotkey": "Ctrl+Shift+F5", "armedTimeoutSeconds": {{timeout}}, "sounds": { "ready": null, "corner": null, "done": null } }""";
@@ -61,18 +63,24 @@ public class ConfigTests
 
         Assert.Contains("RegisterHotkey(Ctrl+Shift+F5)", fake.Calls);
         var balloon = Assert.Single(Balloons(fake));
-        Assert.Equal($"ShowBalloon(ConsoleSnippingTool: config.json: armedTimeoutSeconds {timeout} is not a positive integer; using default 30)", balloon);
+        Assert.Equal($"ShowBalloon(ConsoleSnippingTool: config.json: armedTimeoutSeconds {timeout} is not an integer from 1 to 3600; using default 30)", balloon);
         Assert.Equal(30, Config.Load(json).Config.ArmedTimeoutSeconds);
     }
 
-    [Fact]
-    public void A_configured_Armed_timeout_is_loaded()
+    [Theory]
+    [InlineData(12)]
+    [InlineData(3600)]
+    public void A_configured_Armed_timeout_is_what_the_Hotkey_starts_the_timer_with(int seconds)
     {
-        // Ticket 03 (arming) runs concurrently, so this asserts the loaded value rather than StartArmedTimer(12s) on OnHotkey.
-        var (config, problems) = Config.Load(Json("Ctrl+Win+Z", 12));
+        var fake = new FakePlatform { ConfigText = Json("Ctrl+Win+Z", seconds) };
+        var core = new SnipperCore(fake);
+        core.Start();
+        fake.Calls.Clear();
 
-        Assert.Equal(12, config.ArmedTimeoutSeconds);
-        Assert.Empty(problems);
+        core.OnHotkey();
+
+        Assert.Contains($"StartArmedTimer({seconds}s)", fake.Calls);
+        Assert.Empty(Balloons(fake));
     }
 
     [Fact]

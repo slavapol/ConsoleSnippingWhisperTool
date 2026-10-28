@@ -5,13 +5,15 @@ namespace ConsoleSnippingTool.Tests;
 public class CaptureTests
 {
     [Fact]
-    public void Hotkey_while_Idle_installs_the_hook_registers_Esc_starts_the_timer_and_plays_Ready_in_that_order()
+    public void Hotkey_while_Idle_starts_the_timer_registers_Esc_installs_the_hook_and_plays_Ready_in_that_order()
     {
+        // The timer first: the hook is the step that swallows the user's clicks, so nothing that could fail precedes it
+        // while the hook is live.
         var (fake, core) = Started();
 
         core.OnHotkey();
 
-        string[] expected = ["InstallMouseHook()", "RegisterCancelKey()", "StartArmedTimer(30s)", "PlaySound(Ready)"];
+        string[] expected = ["StartArmedTimer(30s)", "RegisterCancelKey()", "InstallMouseHook()", "PlaySound(Ready)"];
         Assert.Equal(expected, fake.Calls);
     }
 
@@ -181,7 +183,7 @@ public class CaptureTests
 
         core.OnHotkey();
 
-        string[] expected = ["InstallMouseHook()", "RegisterCancelKey()", "StartArmedTimer(30s)", "PlaySound(Ready)"];
+        string[] expected = ["StartArmedTimer(30s)", "RegisterCancelKey()", "InstallMouseHook()", "PlaySound(Ready)"];
         Assert.Equal(expected, fake.Calls);
     }
 
@@ -194,7 +196,7 @@ public class CaptureTests
 
         core.OnHotkey();
 
-        string[] expected = ["InstallMouseHook()", "RegisterCancelKey()", "StartArmedTimer(30s)", "PlaySound(Ready)"];
+        string[] expected = ["StartArmedTimer(30s)", "RegisterCancelKey()", "InstallMouseHook()", "PlaySound(Ready)"];
         Assert.Equal(expected, fake.Calls);
     }
 
