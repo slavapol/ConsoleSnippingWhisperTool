@@ -57,7 +57,7 @@ A tray-resident Windows tool. It starts with no window, sits in the tray, and wa
 32. As a user, I want Hide then Show to bring the recent log back, so that hiding the Console doesn't lose history.
 33. As a user, I want double-clicking the tray icon to do the same as Show, so that the Console is one click away.
 34. As a user, I want Show greyed out while the Console is open and Hide greyed out while it is closed, so that the menu reflects the state.
-35. As a user, I want the Console's close button and Ctrl+C to be unable to kill the tool, so that an accidental close doesn't exit it.
+35. As a user, I want the Console's close button and Ctrl+C to be unable to kill the tool, so that an accidental close doesn't exit it (under Windows Terminal the close button exits the tool cleanly instead; see ADR-0001).
 
 ### Configuration
 
@@ -90,21 +90,22 @@ A tray-resident Windows tool. It starts with no window, sits in the tray, and wa
 
 - A `WinExe` targeting `net10.0-windows`, no window at launch. One STA thread runs a Windows message loop that owns the tray icon and receives hotkey messages. See ADR-0001.
 - WinForms is referenced as a library only (tray icon, clipboard, screen metrics, screen-to-bitmap copy); no Form is ever shown.
-- The Console is a real console window allocated on Show and freed on Hide. Its close button is removed from the system menu and the console control handler ignores Ctrl+C and close events. See ADR-0001.
+- The Console is a real console window allocated on Show and freed on Hide. Its close button is removed from the system menu and the console control handler ignores Ctrl+C and close events. Under Windows Terminal the close event cannot be vetoed, so closing the console there exits the tool cleanly (Hotkey released, tray icon removed). See ADR-0001.
 - Per-Monitor-V2 DPI awareness is declared in the application manifest so hook coordinates and screen copies are in physical pixels on the virtual screen.
 - No third-party runtime packages: Win32 is reached through a small hand-written P/Invoke set (hotkey registration, low-level mouse hook, console allocation and control handler, system menu, named mutex/event, process termination); JSON through the BCL.
+- An exception nothing else caught on the message loop is reported with a balloon and a Console line, and the tool keeps running.
 
 ### Core and Platform seam
 
 - The application is split into a **core** and a **Platform**. The Platform is a single interface for everything the OS does: register and release a hotkey, install and remove the mouse hook, start and stop the Armed timer, copy a Region of the screen to an image, put an image on the clipboard, play a sound, show and hide the Console, write a Console line, set the tray tooltip and menu enabled states, show a balloon, and the single-instance handshake (try acquire, signal previous, wait for exit, terminate previous). The Win32 adapter implements it.
 - The core is a state machine with states **Idle**, **Armed** and **FirstCorner** (Armed with one Corner taken). It receives events (hotkey pressed, left-button down at x,y, right-button down, Esc, timer elapsed, Show, Hide, Exit, config text loaded) and responds only by calling the Platform. All logic lives in the core; the adapter contains no decisions.
 - Transitions:
-  - Idle + hotkey → install hook, register Esc, start timer, play Ready, Armed.
+  - Idle + hotkey → start timer, register Esc, install hook, play Ready, Armed (the hook last, so nothing that could fail runs while clicks are already being swallowed).
   - Armed + left down → record Corner, restart timer, play Corner, FirstCorner.
   - FirstCorner + left down → compute Region, remove hook, release Esc, stop timer, copy Region, set clipboard, play Done, Idle.
   - Armed/FirstCorner + Esc, right down, hotkey or timer → remove hook, release Esc, stop timer, Idle, no sound.
   - Any state + Exit → cancel if Armed, release hotkey, remove tray icon, stop.
-- The Platform reports which mouse events the core consumed; the hook swallows a left-button down the core consumed and the matching up, and a right-button down that cancelled, and passes everything else through.
+- While installed, the hook swallows every left and right button down with its matching up and posts the down to the message loop for the core, because Windows waits only a bounded time for a low-level hook and the second-corner Capture can exceed it; since the hook exists only in Armed and FirstCorner, that equals swallowing exactly the clicks the core consumes, and the core's remove-hook call is deferred until a pending button-up has been swallowed. Everything else passes through. See ADR-0002 for the mechanism and its two residual races.
 
 ### Region
 
@@ -113,15 +114,16 @@ A tray-resident Windows tool. It starts with no window, sits in the tray, and wa
 
 ### Hotkey
 
-- The Hotkey string is one or more of `Ctrl`, `Alt`, `Shift`, `Win` joined by `+` with exactly one key: a letter, a digit or `F1`–`F24`. Parsing is case-insensitive and tolerant of surrounding whitespace. A string with no modifiers or no key is invalid.
+- The Hotkey string is one or more of `Ctrl`, `Alt`, `Shift`, `Win` joined by `+` with exactly one key: a letter, a digit or `F1`–`F24`. `Control` and `Windows` are accepted as aliases of `Ctrl` and `Win`. Parsing is case-insensitive and tolerant of surrounding whitespace. A string with no modifiers or no key is invalid.
 - Esc is registered as a second hotkey only while Armed and released on leaving Armed. See ADR-0002.
 - A failed Hotkey registration is reported with a balloon and a Console line; the tool keeps running without a Hotkey.
 
 ### Configuration
 
 - A JSON file `config.json` in the exe's folder, read once at startup. If absent, written with defaults. Keys are camelCase.
-- Fields: `hotkey` (string, default `Ctrl+Win+Z`); `armedTimeoutSeconds` (positive integer, default 30); `sounds` with `ready`, `corner`, `done`, each `null` (built-in click), the string `none` (silent) or a `.wav` path, relative paths resolved from the exe folder.
-- Any field that is missing, of the wrong type or invalid falls back to its default; each such field is reported once with a balloon and a Console line. Unparseable JSON means all defaults with one report. The tool never refuses to start over configuration.
+- Fields: `hotkey` (string, default `Ctrl+Win+Z`); `armedTimeoutSeconds` (integer from 1 to 3600, default 30); `sounds` with `ready`, `corner`, `done`, each `null` (built-in click), the string `none` (silent) or a `.wav` path, relative paths resolved from the exe folder.
+- The parser tolerates JSON comments and trailing commas, since the file is hand-edited.
+- Any field that is missing, of the wrong type or invalid falls back to its default; each such field is reported once with a balloon and a Console line. Unparseable JSON means all defaults with one report. A config file that cannot be written (read-only exe folder) is reported the same way and startup continues with defaults. The tool never refuses to start over configuration.
 
 ### Sounds
 
