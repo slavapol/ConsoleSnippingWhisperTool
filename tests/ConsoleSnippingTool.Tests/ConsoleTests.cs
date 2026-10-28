@@ -133,11 +133,13 @@ public class ConsoleTests
     {
         var second = 0;
         DateTime OneSecondPerLine() => new DateTime(2026, 10, 28, 0, 0, 0).AddSeconds(second++);
-        var fake = new FakePlatform { RegisterHotkeyResult = false };
+        var fake = new FakePlatform();
         var core = new SnipperCore(fake, OneSecondPerLine);
-        for (var i = 0; i < 250; i++)
+        core.Start();
+        for (var i = 0; i < 125; i++)
         {
-            core.Start(); // each Start logs one taken-Hotkey line
+            core.OnHotkey();    // logs "Armed"
+            core.OnCancelKey(); // logs "Cancelled (Esc)"
         }
         fake.Calls.Clear();
 
@@ -145,8 +147,8 @@ public class ConsoleTests
 
         var replayed = fake.Calls.Where(IsConsoleLine).Skip(Header.Length).ToList();
         Assert.Equal(200, replayed.Count);
-        Assert.Equal($"WriteConsoleLine(00:00:50 {HotkeyTaken})", replayed[0]);
-        Assert.Equal($"WriteConsoleLine(00:04:09 {HotkeyTaken})", replayed[^1]);
+        Assert.Equal("WriteConsoleLine(00:00:50 Armed)", replayed[0]);
+        Assert.Equal("WriteConsoleLine(00:04:09 Cancelled (Esc))", replayed[^1]);
     }
 
     [Fact]

@@ -7,7 +7,7 @@ public class ConfigTests
     [Fact]
     public void A_configured_Hotkey_is_registered_and_shown_in_the_tray_tooltip()
     {
-        var fake = new FakePlatform { ConfigText = Json("Ctrl+Shift+F5", 30) };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey: "Ctrl+Shift+F5") };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -20,7 +20,7 @@ public class ConfigTests
     [Fact]
     public void A_Hotkey_with_odd_case_and_spacing_is_normalised_before_registration()
     {
-        var fake = new FakePlatform { ConfigText = Json(" ctrl + win + z ", 30) };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey: " ctrl + win + z ") };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -36,7 +36,7 @@ public class ConfigTests
     [InlineData("Ctrl+Home")]   // unsupported key
     public void An_invalid_Hotkey_falls_back_to_the_default_with_one_balloon_naming_the_field(string hotkey)
     {
-        var fake = new FakePlatform { ConfigText = Json(hotkey, 30) };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey) };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -72,7 +72,7 @@ public class ConfigTests
     [InlineData(3600)]
     public void A_configured_Armed_timeout_is_what_the_Hotkey_starts_the_timer_with(int seconds)
     {
-        var fake = new FakePlatform { ConfigText = Json("Ctrl+Win+Z", seconds) };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(armedTimeoutSeconds: seconds) };
         var core = new SnipperCore(fake);
         core.Start();
         fake.Calls.Clear();
@@ -110,7 +110,7 @@ public class ConfigTests
     [Fact]
     public void A_signal_set_to_none_is_silenced()
     {
-        var fake = new FakePlatform { ConfigText = Json("Ctrl+Win+Z", 30, done: "\"none\"") };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(done: "\"none\"") };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -124,7 +124,7 @@ public class ConfigTests
     [Fact]
     public void A_signal_pointed_at_a_wav_path_is_set_from_that_file()
     {
-        var fake = new FakePlatform { ConfigText = Json("Ctrl+Win+Z", 30, ready: "\"click.wav\"") };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(ready: "\"click.wav\"") };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -219,15 +219,6 @@ public class ConfigTests
     {
         Assert.False(Hotkey.TryParse(text, out _));
     }
-
-    /// A complete config.json with the given hotkey and timeout; sound values are JSON literals (null, "none", "x.wav").
-    private static string Json(string hotkey, int armedTimeoutSeconds, string ready = "null", string corner = "null", string done = "null") => $$"""
-        {
-          "hotkey": "{{hotkey}}",
-          "armedTimeoutSeconds": {{armedTimeoutSeconds}},
-          "sounds": { "ready": {{ready}}, "corner": {{corner}}, "done": {{done}} }
-        }
-        """;
 
     private static List<string> Balloons(FakePlatform fake) =>
         fake.Calls.Where(call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal)).ToList();

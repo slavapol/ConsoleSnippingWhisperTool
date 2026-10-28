@@ -76,7 +76,7 @@ public class SoundTests
     {
         var fake = new FakePlatform
         {
-            ConfigText = ConfigWith(done: "\"bad.wav\""),
+            ConfigText = ConfigJson.With(done: "\"bad.wav\""),
             SoundLoadResults = { [Signal.Done] = false },
         };
         var core = new SnipperCore(fake);
@@ -98,7 +98,7 @@ public class SoundTests
     {
         var fake = new FakePlatform
         {
-            ConfigText = ConfigWith(done: "\"bad.wav\""),
+            ConfigText = ConfigJson.With(done: "\"bad.wav\""),
             SoundLoadResults = { [Signal.Done] = false },
         };
         var core = new SnipperCore(fake);
@@ -114,7 +114,7 @@ public class SoundTests
     [Fact]
     public void A_File_source_that_loads_is_set_once_and_nothing_is_reported()
     {
-        var fake = new FakePlatform { ConfigText = ConfigWith(ready: "\"click.wav\"") };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(ready: "\"click.wav\"") };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -133,7 +133,7 @@ public class SoundTests
     [Fact]
     public void A_None_source_is_set_once()
     {
-        var fake = new FakePlatform { ConfigText = ConfigWith(corner: "\"none\"") };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(corner: "\"none\"") };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -146,15 +146,6 @@ public class SoundTests
         ];
         Assert.Equal(expected, SoundCalls(fake));
     }
-
-    /// A complete config.json so that only the sounds under test differ from the defaults; values are JSON literals.
-    private static string ConfigWith(string ready = "null", string corner = "null", string done = "null") => $$"""
-        {
-          "hotkey": "Ctrl+Win+Z",
-          "armedTimeoutSeconds": 30,
-          "sounds": { "ready": {{ready}}, "corner": {{corner}}, "done": {{done}} }
-        }
-        """;
 
     private static IEnumerable<string> SoundCalls(FakePlatform fake) =>
         fake.Calls.Where(call => call.StartsWith("TrySetSound(", StringComparison.Ordinal));

@@ -4,19 +4,6 @@ namespace ConsoleSnippingTool.Tests;
 
 public class StartupTests
 {
-    /// The default config.json as the spec's Configuration section shows it.
-    private const string DefaultConfigJson = """
-        {
-          "hotkey": "Ctrl+Win+Z",
-          "armedTimeoutSeconds": 30,
-          "sounds": {
-            "ready": null,
-            "corner": null,
-            "done": null
-          }
-        }
-        """;
-
     [Fact]
     public void Fresh_start_writes_the_default_config_when_there_is_none()
     {
@@ -25,7 +12,7 @@ public class StartupTests
 
         core.Start();
 
-        Assert.Equal(Normalise(DefaultConfigJson), Normalise(fake.WrittenConfigText));
+        Assert.Equal(Normalise(ConfigJson.With()), Normalise(fake.WrittenConfigText));
     }
 
     [Fact]
