@@ -1,6 +1,6 @@
 # 01 Scaffold the solution
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: none
 
 Spec: `.scratch/console-snipping-tool/spec.md` → Implementation Decisions / Process shape, Repository.
@@ -25,3 +25,4 @@ A solution that builds and whose test project runs green, with nothing else in i
 - Opening the `.sln` in Visual Studio 2026 shows both projects.
 
 ## Comments
+- Resolved in 1bd5134 (01: scaffold the solution), fast-forwarded onto integration/console-snipping-tool. Build, test and publish green. Added global.json selecting the Microsoft.Testing.Platform runner because xunit.v3 4.x cannot run under VSTest on the .NET 10 SDK; NoWarn WFO0003 in the app csproj since DPI mode is declared in the manifest by design.
