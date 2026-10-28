@@ -1,6 +1,6 @@
 # 08 End-to-end wiring, publish and manual run
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 03, 04, 05, 06, 07
 
 Spec: `.scratch/console-snipping-tool/spec.md` → everything; this ticket makes the exe do what the spec says.
@@ -41,3 +41,4 @@ Spec: `.scratch/console-snipping-tool/spec.md` → everything; this ticket makes
   - (d) PASS: a second copy was started; the first exited within 5 s with exit code 0; the second was alive and the probe still failed with 1409.
   - (e) PASS: after `Stop-Process` of the second copy the probe succeeded (0) and was unregistered again. A killed process's tray icon may linger until hovered; Windows behaviour, not a bug.
 - Manual checklist: items 1–8 not run: needs the user's desktop. Partial automated coverage: item 1's `config.json` creation is (b) above; item 7's process half (the first Instance exits, the second owns the Hotkey) is (d) above; whether the tray icon appears, its tooltip, sounds, clicks, clipboard, Console, cancels and Exit are the user's to observe.
+- Resolved: branch tip df93e95 fast-forwarded onto integration/console-snipping-tool; build green, 80 tests green on integration. The interactive checklist items remain for the user; code review of the integration branch follows.
