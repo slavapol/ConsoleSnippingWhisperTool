@@ -1,6 +1,6 @@
 # 04 Hotkey grammar and configuration loading
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 02
 
 Spec: `.scratch/console-snipping-tool/spec.md` → Hotkey, Configuration, user stories 36–45.
@@ -24,3 +24,4 @@ Spec: `.scratch/console-snipping-tool/spec.md` → Hotkey, Configuration, user s
 `dotnet test` green; `IPlatform` unchanged.
 
 ## Comments
+- Resolved in 581542d (04: Hotkey grammar and config.json loading with per-field fallback), merged onto integration/console-snipping-tool after ticket 03; build green, 60 tests green on integration. Missing fields are reported too (per spec), so an empty object yields three balloons. Message shape: `config.json: <field> <raw value> is not ...; using default <value>`; unparseable: `config.json could not be parsed (line N); using defaults`. Config.FileName = "config.json". Relative sound paths pass through verbatim for the adapter to resolve.
