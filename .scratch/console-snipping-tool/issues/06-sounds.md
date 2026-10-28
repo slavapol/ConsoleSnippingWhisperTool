@@ -1,6 +1,6 @@
 # 06 Synthesised click and sound setup
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 04
 
 Spec: `.scratch/console-snipping-tool/spec.md` → Sounds, user stories 40–42, 46–47.
@@ -23,3 +23,4 @@ The WAV header is valid (RIFF, WAVE, fmt chunk with channels=1, rate=44100, bits
 `dotnet test` green; `IPlatform` unchanged.
 
 ## Comments
+- Resolved in a65ac5c (06: synthesised click and sound setup tests; branch tip 8943fa8 merges 05), merged onto integration/console-snipping-tool; build green, 78 tests green on integration. ClickSound.Wav(): 16-bit mono 44.1 kHz, 30 ms, exp decay tau 6 ms, peak 0.6, xorshift32 seed 0x5EEDC11C, 2,690 bytes, deterministic. The Startup sound step needed no change (ticket 02 already matched the wording). For ticket 08: wrap ClickSound.Wav() in a MemoryStream per SoundPlayer; the adapter must never return false for BuiltIn or None.

@@ -1,6 +1,6 @@
 # 05 Console, log ring and tray state
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 02
 
 Spec: `.scratch/console-snipping-tool/spec.md` → Console and log, Tray, user stories 30–35. ADR-0001.
@@ -26,3 +26,4 @@ Show prints header then ring; lines logged while hidden appear on the next Show;
 `dotnet test` green; `IPlatform` unchanged.
 
 ## Comments
+- Resolved in eae1f15 (05: console, log ring and tray state; branch tip 0558d7e merges 03 and 04), merged onto integration/console-snipping-tool; build green, 68 tests green on integration. For ticket 08: constructor is now SnipperCore(IPlatform, Func<DateTime>? clock = null); Log is private, so an unhandled-exception entry point must be added in a core file; Show prints the header lines "ConsoleSnippingTool", "Press <Hotkey> to capture", "Esc or right-click cancels", "" then the ring; SetTrayMenuState is called once more right before RemoveTrayIcon on exit.

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace ConsoleSnippingTool.Core;
 
 /// The state machine behind the tool. It receives events from the Win32 adapter through its public On* methods and
@@ -7,26 +9,35 @@ public sealed partial class SnipperCore
 {
     public const string ToolName = "ConsoleSnippingTool";
 
+    /// How many log lines Show can replay (spec: Console and log).
+    private const int LogCapacity = 200;
+
     private enum State { Idle, Armed, FirstCorner }
 
     private readonly IPlatform _platform;
+    private readonly Func<DateTime> _clock;
+    private readonly LogRing _log = new(LogCapacity);
     private State _state = State.Idle;
     private Config _config = new();
 
-    /// True between Show and Hide. Ticket 05 sets it from the Console file.
+    /// True between Show and Hide.
     private bool ConsoleShown { get; set; }
 
-    public SnipperCore(IPlatform platform)
+    /// <param name="clock">Local time for log timestamps; defaults to <see cref="DateTime.Now"/>. Tests pin it.</param>
+    public SnipperCore(IPlatform platform, Func<DateTime>? clock = null)
     {
         _platform = platform;
+        _clock = clock ?? (() => DateTime.Now);
     }
 
-    /// Writes a line to the Console when it is shown. Ticket 05 adds the timestamp and the log ring.
+    /// Timestamps a line, keeps it in the ring and writes it to the Console when it is shown.
     private void Log(string line)
     {
+        var stamped = $"{_clock().ToString("HH:mm:ss", CultureInfo.InvariantCulture)} {line}";
+        _log.Append(stamped);
         if (ConsoleShown)
         {
-            _platform.WriteConsoleLine(line);
+            _platform.WriteConsoleLine(stamped);
         }
     }
 }
