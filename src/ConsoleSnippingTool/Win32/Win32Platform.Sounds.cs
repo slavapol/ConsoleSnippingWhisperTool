@@ -6,7 +6,7 @@ namespace ConsoleSnippingTool.Win32;
 public sealed partial class Win32Platform
 {
     /// One player per Signal, indexed by its enum value; null plays nothing.
-    private readonly SoundPlayer?[] _players = new SoundPlayer?[3];
+    private readonly SoundPlayer?[] _players = new SoundPlayer?[Enum.GetValues<Signal>().Length];
 
     public bool TrySetSound(Signal signal, SoundSource source)
     {

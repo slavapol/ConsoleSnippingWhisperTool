@@ -2,8 +2,8 @@ namespace ConsoleSnippingTool.Core;
 
 public sealed partial class SnipperCore
 {
-    /// The Corner taken while Armed, in virtual-screen pixels; meaningful only in FirstCorner.
-    private (int X, int Y) _firstCorner;
+    /// The Corner taken while Armed; meaningful only in FirstCorner.
+    private Corner _firstCorner;
 
     private TimeSpan ArmedTimeout => TimeSpan.FromSeconds(_config.ArmedTimeoutSeconds);
 
@@ -12,7 +12,7 @@ public sealed partial class SnipperCore
     {
         if (_state != State.Idle)
         {
-            Cancel("hotkey");
+            Cancel(CancelReason.Hotkey);
             return;
         }
 
@@ -31,7 +31,7 @@ public sealed partial class SnipperCore
     {
         if (_state != State.Idle)
         {
-            Cancel("Esc");
+            Cancel(CancelReason.Escape);
         }
     }
 
@@ -44,7 +44,7 @@ public sealed partial class SnipperCore
                 TakeFirstCorner(x, y);
                 return true;
             case State.FirstCorner:
-                Capture(Region.FromCorners(_firstCorner, (x, y)));
+                Capture(Region.FromCorners(_firstCorner, new Corner(x, y)));
                 return true;
             default:
                 return false;
@@ -59,7 +59,7 @@ public sealed partial class SnipperCore
             return false;
         }
 
-        Cancel("right-click");
+        Cancel(CancelReason.RightClick);
         return true;
     }
 
@@ -68,13 +68,13 @@ public sealed partial class SnipperCore
     {
         if (_state != State.Idle)
         {
-            Cancel(TimeoutReason);
+            Cancel(CancelReason.Timeout);
         }
     }
 
     private void TakeFirstCorner(int x, int y)
     {
-        _firstCorner = (x, y);
+        _firstCorner = new Corner(x, y);
         _platform.StartArmedTimer(ArmedTimeout);
         _platform.PlaySound(Signal.Corner);
         _state = State.FirstCorner;
@@ -91,18 +91,25 @@ public sealed partial class SnipperCore
             return;
         }
 
-        var message = $"Clipboard refused the {region.Width}×{region.Height} capture; nothing was copied";
-        _platform.ShowBalloon(ToolName, message);
-        Log(message);
+        Report($"Clipboard refused the {region.Width}×{region.Height} capture; nothing was copied");
     }
 
-    private const string TimeoutReason = "timeout";
+    /// What ended an Armed Capture without an image; OnExit supplies Exit.
+    private enum CancelReason { Escape, RightClick, Hotkey, Timeout, Exit }
 
-    /// Leaves Armed or FirstCorner without a Capture: silent, nothing copied. OnExit calls it too.
-    private void Cancel(string reason)
+    /// Leaves Armed or FirstCorner without a Capture: silent, nothing copied.
+    private void Cancel(CancelReason reason)
     {
         Disarm();
-        Log(reason == TimeoutReason ? "Timed out" : $"Cancelled ({reason})");
+        Log(reason switch
+        {
+            CancelReason.Escape => "Cancelled (Esc)",
+            CancelReason.RightClick => "Cancelled (right-click)",
+            CancelReason.Hotkey => "Cancelled (hotkey)",
+            CancelReason.Timeout => "Timed out",
+            CancelReason.Exit => "Cancelled (exit)",
+            _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, null),
+        });
     }
 
     /// Stops reading the user's input: hook off, Esc released, timer stopped, Idle. The tail of every Capture and cancel.

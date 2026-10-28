@@ -42,9 +42,7 @@ public sealed partial class SnipperCore
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
                 // A read-only exe folder is not a reason to refuse to start (spec: Configuration).
-                var message = $"{Config.FileName} could not be written: {e.Message.TrimEnd('.')}; continuing with defaults";
-                _platform.ShowBalloon(ToolName, message);
-                Log(message);
+                Report($"{Config.FileName} could not be written: {e.Message.TrimEnd('.')}; continuing with defaults");
             }
         }
 
@@ -52,14 +50,13 @@ public sealed partial class SnipperCore
         _config = config;
         foreach (var problem in problems)
         {
-            _platform.ShowBalloon(ToolName, problem);
-            Log(problem);
+            Report(problem);
         }
     }
 
     private void SetUpSounds()
     {
-        foreach (var signal in new[] { Signal.Ready, Signal.Corner, Signal.Done })
+        foreach (var signal in Enum.GetValues<Signal>())
         {
             var source = _config.SoundFor(signal);
             if (_platform.TrySetSound(signal, source))
@@ -67,8 +64,9 @@ public sealed partial class SnipperCore
                 continue;
             }
 
-            var path = source is SoundSource.File file ? file.Path : source.GetType().Name;
-            Log($"Sound for {signal} could not be loaded from {path}; using built-in click");
+            // A File is named by its path, the one thing the user can fix; the others by their text form.
+            var origin = source is SoundSource.File file ? file.Path : source.ToString();
+            Log($"Sound for {signal} could not be loaded from {origin}; using built-in click");
             _platform.TrySetSound(signal, new SoundSource.BuiltIn());
         }
     }
@@ -80,9 +78,7 @@ public sealed partial class SnipperCore
             return;
         }
 
-        var message = $"Hotkey {_config.Hotkey.Text} is already taken by another app; edit config.json and relaunch";
-        _platform.ShowBalloon(ToolName, message);
-        Log(message);
+        Report($"Hotkey {_config.Hotkey.Text} is already taken by another app; edit config.json and relaunch");
     }
 
     private void SetUpTray()
@@ -98,7 +94,7 @@ public sealed partial class SnipperCore
     {
         if (_state != State.Idle)
         {
-            Cancel("exit");
+            Cancel(CancelReason.Exit);
         }
 
         // No-op while the Console is hidden; lets the adapter detach its console handler before the process goes.
@@ -110,10 +106,6 @@ public sealed partial class SnipperCore
 
     /// An exception nothing else caught, handed over by Program from the message loop or another thread: the user is
     /// told and the tool keeps running rather than dying silently.
-    public void OnUnhandledException(Exception exception)
-    {
-        var message = $"Unhandled error: {exception.GetType().Name}: {exception.Message}";
-        _platform.ShowBalloon(ToolName, message);
-        Log(message);
-    }
+    public void OnUnhandledException(Exception exception) =>
+        Report($"Unhandled error: {exception.GetType().Name}: {exception.Message}");
 }

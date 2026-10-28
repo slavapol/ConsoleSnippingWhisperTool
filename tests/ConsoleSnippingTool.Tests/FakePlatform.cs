@@ -19,7 +19,7 @@ namespace ConsoleSnippingTool.Tests;
 //   Process          Exit()
 //
 // Formats: a TimeSpan is whole or fractional seconds followed by "s" (30s, 0.5s); a Hotkey is its Text; a Region is
-// Left,Top,WidthxHeight; a SoundSource is BuiltIn, None or File(path); a bool is lowercase true/false.
+// Left,Top,WidthxHeight; a SoundSource is its ToString (BuiltIn, None or File(path)); a bool is lowercase true/false.
 public sealed class FakePlatform : IPlatform
 {
     public List<string> Calls { get; } = [];
@@ -118,7 +118,7 @@ public sealed class FakePlatform : IPlatform
 
     public bool TrySetSound(Signal signal, SoundSource source)
     {
-        Record($"TrySetSound({signal},{Describe(source)})");
+        Record($"TrySetSound({signal},{source})");
         return !SoundLoadResults.TryGetValue(signal, out var loaded) || loaded;
     }
 
@@ -152,12 +152,4 @@ public sealed class FakePlatform : IPlatform
     private static string Seconds(TimeSpan span) => span.TotalSeconds.ToString(CultureInfo.InvariantCulture) + "s";
 
     private static string Bool(bool value) => value ? "true" : "false";
-
-    private static string Describe(SoundSource source) => source switch
-    {
-        SoundSource.BuiltIn => "BuiltIn",
-        SoundSource.None => "None",
-        SoundSource.File file => $"File({file.Path})",
-        _ => source.ToString() ?? "?",
-    };
 }

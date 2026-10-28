@@ -40,4 +40,11 @@ public sealed partial class SnipperCore
             _platform.WriteConsoleLine(stamped);
         }
     }
+
+    /// A problem the user should hear about now: a balloon from the tray, then the same text as a log line.
+    private void Report(string message)
+    {
+        _platform.ShowBalloon(ToolName, message);
+        Log(message);
+    }
 }

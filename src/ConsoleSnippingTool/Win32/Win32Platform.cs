@@ -20,7 +20,6 @@ public sealed partial class Win32Platform : IPlatform
 {
     private const string InstanceMutexName = @"Local\ConsoleSnippingTool.Instance";
     private const string ReplaceEventName = @"Local\ConsoleSnippingTool.Replace";
-    private const string ConfigFileName = "config.json";
 
     /// How long TerminatePreviousInstance waits for a killed process to be gone, so its mutex is free on return.
     private const int KillWaitMilliseconds = 2000;
@@ -36,13 +35,7 @@ public sealed partial class Win32Platform : IPlatform
 
     public Win32Platform()
     {
-        _window = new MessageWindow(
-            onHotkey: () => AttachedCore.OnHotkey(),
-            onCancelKey: () => AttachedCore.OnCancelKey(),
-            onReplaceRequested: () => AttachedCore.OnReplaceRequested(),
-            onLeftButtonDown: (x, y) => AttachedCore.OnLeftButtonDown(x, y),
-            onRightButtonDown: () => AttachedCore.OnRightButtonDown(),
-            onExitRequested: () => AttachedCore.OnExit());
+        _window = new MessageWindow(() => AttachedCore);
         _mouseProc = MouseHookCallback;
         _armedTimer = new System.Windows.Forms.Timer();
         _armedTimer.Tick += OnArmedTimerTick;
@@ -175,11 +168,11 @@ public sealed partial class Win32Platform : IPlatform
 
     public string? ReadConfigText()
     {
-        var path = Path.Combine(ExeFolder, ConfigFileName);
+        var path = Path.Combine(ExeFolder, Config.FileName);
         return File.Exists(path) ? File.ReadAllText(path) : null;
     }
 
-    public void WriteConfigText(string json) => File.WriteAllText(Path.Combine(ExeFolder, ConfigFileName), json);
+    public void WriteConfigText(string json) => File.WriteAllText(Path.Combine(ExeFolder, Config.FileName), json);
 
     // Process
 
