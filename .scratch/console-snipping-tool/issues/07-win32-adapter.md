@@ -1,6 +1,6 @@
 # 07 Win32 Platform adapter
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 02
 
 Spec: `.scratch/console-snipping-tool/spec.md` → Process shape, Core and Platform seam, Region, Single instance, Tray, Console. ADRs 0001 and 0002.
@@ -27,3 +27,4 @@ Spec: `.scratch/console-snipping-tool/spec.md` → Process shape, Core and Platf
 - All P/Invoke declarations in one `NativeMethods` file using `LibraryImport` or `DllImport` with `SetLastError` where relevant; no `unsafe`.
 
 ## Comments
+- Resolved in 28a1d42 (07: Win32 Platform adapter; branch tip 96e8b6f merges 06 and swaps in ClickSound.Wav()), merged onto integration/console-snipping-tool; build green, 78 tests green. Public surface: Win32Platform() on the STA thread, Attach(SnipperCore). Names: Local\ConsoleSnippingTool.Instance (mutex), Local\ConsoleSnippingTool.Replace (event). The adapter defers UnhookWindowsHookEx until the pending button-up is swallowed (a stray WM_RBUTTONUP would raise WM_CONTEXTMENU). Un-ignored src/ConsoleSnippingTool/Win32/ in .gitignore (the template ignores Win32/ build dirs). Open items handed to ticket 08: the second-corner capture runs inside the low-level hook callback (hook timeout risk); CTRL_CLOSE_EVENT under Windows Terminal cannot be vetoed; injected input is currently ignored; WriteConfigText failures propagate.
