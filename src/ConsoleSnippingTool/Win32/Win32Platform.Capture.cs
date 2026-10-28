@@ -12,8 +12,8 @@ public sealed partial class Win32Platform
     private readonly System.Windows.Forms.Timer _armedTimer;
     private nint _mouseHook;
 
-    // A consumed button-down and its matching button-up are swallowed as a pair. The core removes the hook from
-    // inside the down it consumes, before the up has arrived, so that removal waits until the pair is complete.
+    // A button-down and its matching button-up are swallowed as a pair. The core removes the hook while handling the
+    // posted down, which may be before the up has arrived, so that removal waits until the pair is complete.
     private bool _swallowNextLeftUp;
     private bool _swallowNextRightUp;
     private bool _removeHookAfterPair;
@@ -38,12 +38,9 @@ public sealed partial class Win32Platform
 
     public void InstallMouseHook()
     {
-        _removeHookAfterPair = false;
-        if (_mouseHook != 0)
-        {
-            return; // still installed, finishing the pair of the last consumed click
-        }
-
+        // Always a fresh hook. One left installed to finish a pair may be waiting for an up that will never come:
+        // Windows removes a low-level hook silently when it times out, leaving a stale handle and stuck flags.
+        Unhook();
         _swallowNextLeftUp = false;
         _swallowNextRightUp = false;
         _mouseHook = NativeMethods.SetWindowsHookExW(
@@ -81,23 +78,26 @@ public sealed partial class Win32Platform
         }
     }
 
-    /// Runs on the STA thread for every mouse event while installed. Nothing here may log or allocate.
+    /// Runs on the STA thread for every mouse event while installed, from inside the message loop's GetMessage, and
+    /// must return within the system's low-level hook timeout: past it the input is delivered to the window under
+    /// the cursor whatever is returned, and the hook may be dropped. So it decides nothing and calls nothing that
+    /// could take time: it swallows every left and right button down with its matching up, and posts the down to the
+    /// message window, where the core handles it after this has returned. That equals the core's own answer: it
+    /// installs the hook only in Armed and FirstCorner, exactly the states in which OnLeftButtonDown and
+    /// OnRightButtonDown return true (swallow), so while the hook is installed every such click is one the core
+    /// would have consumed. A posted call that arrives after the core has gone Idle (a cancel raced with the click)
+    /// is harmless: the core returns false and does nothing. Injected input is not filtered out: key and mouse
+    /// remapping tools send it, and their users must still be able to capture. Nothing here may log or allocate.
     private nint MouseHookCallback(int nCode, nint wParam, ref NativeMethods.MSLLHOOKSTRUCT lParam)
     {
-        if (nCode == NativeMethods.HC_ACTION && (lParam.flags & NativeMethods.LLMHF_INJECTED) == 0)
+        if (nCode == NativeMethods.HC_ACTION)
         {
             switch ((int)wParam)
             {
                 case NativeMethods.WM_LBUTTONDOWN:
-                    _swallowNextLeftUp = true; // provisional, so a RemoveMouseHook from inside the call waits for the up
-                    if (AttachedCore.OnLeftButtonDown(lParam.pt.x, lParam.pt.y))
-                    {
-                        return 1;
-                    }
-
-                    _swallowNextLeftUp = false;
-                    CompletePendingRemoval();
-                    break;
+                    _swallowNextLeftUp = true;
+                    NativeMethods.PostMessageW(_window.Handle, MessageWindow.WM_LEFT_BUTTON_DOWN, lParam.pt.x, lParam.pt.y);
+                    return 1;
 
                 case NativeMethods.WM_LBUTTONUP when _swallowNextLeftUp:
                     _swallowNextLeftUp = false;
@@ -106,14 +106,8 @@ public sealed partial class Win32Platform
 
                 case NativeMethods.WM_RBUTTONDOWN:
                     _swallowNextRightUp = true;
-                    if (AttachedCore.OnRightButtonDown())
-                    {
-                        return 1;
-                    }
-
-                    _swallowNextRightUp = false;
-                    CompletePendingRemoval();
-                    break;
+                    NativeMethods.PostMessageW(_window.Handle, MessageWindow.WM_RIGHT_BUTTON_DOWN, 0, 0);
+                    return 1;
 
                 case NativeMethods.WM_RBUTTONUP when _swallowNextRightUp:
                     _swallowNextRightUp = false;

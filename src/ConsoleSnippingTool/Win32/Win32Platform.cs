@@ -38,11 +38,14 @@ public sealed partial class Win32Platform : IPlatform
         _window = new MessageWindow(
             onHotkey: () => AttachedCore.OnHotkey(),
             onCancelKey: () => AttachedCore.OnCancelKey(),
-            onReplaceRequested: () => AttachedCore.OnReplaceRequested());
+            onReplaceRequested: () => AttachedCore.OnReplaceRequested(),
+            onLeftButtonDown: (x, y) => AttachedCore.OnLeftButtonDown(x, y),
+            onRightButtonDown: () => AttachedCore.OnRightButtonDown(),
+            onExitRequested: () => AttachedCore.OnExit());
         _mouseProc = MouseHookCallback;
         _armedTimer = new System.Windows.Forms.Timer();
         _armedTimer.Tick += OnArmedTimerTick;
-        _consoleCtrlHandler = _ => true;
+        _consoleCtrlHandler = OnConsoleCtrl;
         _showItem = new ToolStripMenuItem("Show", null, (_, _) => AttachedCore.OnShow());
         _hideItem = new ToolStripMenuItem("Hide", null, (_, _) => AttachedCore.OnHide());
         _trayMenu = new ContextMenuStrip
@@ -174,5 +177,9 @@ public sealed partial class Win32Platform : IPlatform
 
     // Process
 
-    public void Exit() => Application.ExitThread();
+    public void Exit()
+    {
+        _exited.Set();
+        Application.ExitThread();
+    }
 }

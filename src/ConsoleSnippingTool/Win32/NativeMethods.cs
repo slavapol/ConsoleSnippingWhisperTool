@@ -20,7 +20,9 @@ internal static class NativeMethods
     // SetWindowsHookEx
     public const int WH_MOUSE_LL = 14;
     public const int HC_ACTION = 0;
-    public const uint LLMHF_INJECTED = 0x00000001;
+
+    // SetConsoleCtrlHandler
+    public const uint CTRL_CLOSE_EVENT = 2;
 
     // System menu
     public const uint SC_CLOSE = 0xF060;

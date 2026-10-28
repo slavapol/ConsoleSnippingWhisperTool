@@ -175,7 +175,7 @@ public class StartupTests
 
         core.Start();
 
-        var balloon = Assert.Single(fake.Calls.Where(call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal)));
+        var balloon = Assert.Single(fake.Calls, call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal));
         Assert.Equal("ShowBalloon(ConsoleSnippingTool: config.json could not be written: Access to the path 'config.json' is denied; continuing with defaults)", balloon);
         Assert.Contains("RegisterHotkey(Ctrl+Win+Z)", fake.Calls);
         Assert.Contains("SetTrayMenuState(showEnabled:true,hideEnabled:false)", fake.Calls);

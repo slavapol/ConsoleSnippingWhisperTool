@@ -6,4 +6,5 @@ The tool is named "Console…" and its only visible surface is a console window,
 
 - Closing an allocated console with its X button kills the owning process, so the X is disabled; the console is closed from the tray.
 - Ctrl+C inside the console would also terminate the process and is ignored.
+- Under Windows Terminal (the default console host on Windows 11) the allocated console is a tab in a window that is not `GetConsoleWindow()`, so its X cannot be disabled and the close event cannot be vetoed: the process is terminated once the handler returns. Closing the console there therefore exits the tool cleanly (Hotkey released, tray icon removed) instead of hiding it.
 - The console's buffer is lost on Hide, so the log is kept in memory and replayed on Show.
