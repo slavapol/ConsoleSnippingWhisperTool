@@ -38,8 +38,13 @@ public sealed partial class SnipperCore
             _platform.WriteConfigText(new Config().ToJson());
         }
 
-        // Ticket 04 parses non-null text; until then any text yields the defaults.
-        _config = new Config();
+        var (config, problems) = Config.Load(text);
+        _config = config;
+        foreach (var problem in problems)
+        {
+            _platform.ShowBalloon(ToolName, problem);
+            Log(problem);
+        }
     }
 
     private void SetUpSounds()
