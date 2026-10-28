@@ -37,7 +37,7 @@ internal static class Program
         }
         catch (Exception e)
         {
-            Report(core, e); // the tray icon exists since the constructor, so Exit is still reachable
+            Report(core, e); // the balloon shows the tray icon, so Exit is still reachable
         }
 
         Application.Run();

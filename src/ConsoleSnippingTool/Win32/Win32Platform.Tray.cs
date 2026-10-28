@@ -15,8 +15,15 @@ public sealed partial class Win32Platform
     // From Bitmap.GetHicon; Icon.FromHandle does not own it, so it is destroyed with the tray icon.
     private readonly nint _trayIconHandle;
 
-    public void SetTrayTooltip(string text) =>
+    // The icon is constructed hidden and shown by whichever of these the core calls first, both of which come after
+    // the single-instance handshake: the tooltip at the end of Start, or a balloon for a problem found on the way
+    // (NotifyIcon drops a balloon while the icon is not shown).
+
+    public void SetTrayTooltip(string text)
+    {
         _trayIcon.Text = text.Length <= TooltipMaxLength ? text : text[..TooltipMaxLength];
+        _trayIcon.Visible = true;
+    }
 
     public void SetTrayMenuState(bool showEnabled, bool hideEnabled)
     {
@@ -24,8 +31,11 @@ public sealed partial class Win32Platform
         _hideItem.Enabled = hideEnabled;
     }
 
-    public void ShowBalloon(string title, string text) =>
+    public void ShowBalloon(string title, string text)
+    {
+        _trayIcon.Visible = true;
         _trayIcon.ShowBalloonTip(BalloonMilliseconds, title, text, ToolTipIcon.Warning);
+    }
 
     public void RemoveTrayIcon()
     {

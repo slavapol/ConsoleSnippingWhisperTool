@@ -30,6 +30,7 @@ public sealed partial class Win32Platform : IPlatform
     private readonly MessageWindow _window;
     private SnipperCore? _core;
     private Mutex? _instanceMutex;
+    private bool _ownsInstanceMutex;
     private EventWaitHandle? _replaceEvent;
     private RegisteredWaitHandle? _replaceWatch;
 
@@ -53,12 +54,13 @@ public sealed partial class Win32Platform : IPlatform
             Items = { _showItem, _hideItem, new ToolStripMenuItem("Exit", null, (_, _) => AttachedCore.OnExit()) },
         };
         _trayIconHandle = CreateTrayIconHandle();
+        // Not yet Visible: a new Instance may wait up to 5 s for the old one, and two icons would show meanwhile. The
+        // first SetTrayTooltip or ShowBalloon, both after the handshake, shows it.
         _trayIcon = new NotifyIcon
         {
             Icon = Icon.FromHandle(_trayIconHandle),
             ContextMenuStrip = _trayMenu,
             Text = SnipperCore.ToolName,
-            Visible = true,
         };
         _trayIcon.DoubleClick += (_, _) => AttachedCore.OnShow();
     }
@@ -74,7 +76,9 @@ public sealed partial class Win32Platform : IPlatform
     public bool TryAcquireInstance()
     {
         _instanceMutex ??= new Mutex(initiallyOwned: false, InstanceMutexName);
-        if (!WaitForInstanceMutex(TimeSpan.Zero))
+        // Already owned after WaitForPreviousInstanceExit: a second WaitOne would re-enter the mutex and need a
+        // second release.
+        if (!_ownsInstanceMutex && !WaitForInstanceMutex(TimeSpan.Zero))
         {
             return false;
         }
@@ -137,12 +141,14 @@ public sealed partial class Win32Platform : IPlatform
     {
         try
         {
-            return _instanceMutex!.WaitOne(timeout);
+            _ownsInstanceMutex = _instanceMutex!.WaitOne(timeout);
         }
         catch (AbandonedMutexException)
         {
-            return true;
+            _ownsInstanceMutex = true;
         }
+
+        return _ownsInstanceMutex;
     }
 
     /// Resets the replace event (a stale signal must not fire at us) and waits for it on the pool, marshalling the
@@ -179,6 +185,14 @@ public sealed partial class Win32Platform : IPlatform
 
     public void Exit()
     {
+        if (_ownsInstanceMutex)
+        {
+            // Wakes a replacing Instance now rather than when this process dies; the abandoned-mutex path in
+            // WaitForInstanceMutex stays as the fallback for an Instance that never gets here.
+            _instanceMutex!.ReleaseMutex();
+            _ownsInstanceMutex = false;
+        }
+
         _exited.Set();
         Application.ExitThread();
     }
