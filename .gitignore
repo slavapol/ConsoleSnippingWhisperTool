@@ -27,6 +27,8 @@ mono_crash.*
 x64/
 x86/
 [Ww][Ii][Nn]32/
+# The rule above is for VS build output; the Win32 adapter source folder is not that.
+!src/ConsoleSnippingTool/Win32/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
