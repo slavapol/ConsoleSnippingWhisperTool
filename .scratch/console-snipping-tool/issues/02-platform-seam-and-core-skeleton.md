@@ -1,6 +1,6 @@
 # 02 Platform seam, fake Platform, core skeleton with startup and single instance
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 01
 
 Spec: `.scratch/console-snipping-tool/spec.md` → Core and Platform seam, Single instance, Tray, Testing Decisions. ADRs 0001 and 0002.
@@ -112,3 +112,4 @@ Tests (xUnit v3, one file `StartupTests.cs`): fresh start writes default config 
 - `dotnet test` green. No Win32 code anywhere. The interface matches the listing above verbatim.
 
 ## Comments
+- Resolved in 1fc91a9 (02: Platform seam, FakePlatform and SnipperCore skeleton with startup), fast-forwarded onto integration/console-snipping-tool; build and 9 tests green on integration. Notes for later tickets: OnExit already calls OnHide before UnregisterHotkey; Config has ToJson() with relaxed escaping so "+" stays literal; console visibility is the private ConsoleShown property in SnipperCore.cs; the sound-fallback log line from ticket 06 is already in the sound step.
