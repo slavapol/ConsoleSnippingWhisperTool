@@ -1,6 +1,6 @@
 # 03 Capture state machine
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 02
 
 Spec: `.scratch/console-snipping-tool/spec.md` → Core and Platform seam (transitions), Region, Hotkey (Esc), user stories 9–29. ADR-0002.
@@ -28,3 +28,4 @@ Arm sequence and order of calls; corners (10,10) and (5,20) → `TryCaptureToCli
 `dotnet test` green; `IPlatform` unchanged.
 
 ## Comments
+- Resolved in 9942d2d (03: capture state machine), fast-forwarded onto integration/console-snipping-tool; build green, 30 tests green on integration. For ticket 08: OnLeftButtonDown returns true (swallow down and matching up) in Armed and FirstCorner, false in Idle; OnRightButtonDown returns true only when it cancelled. Log lines are emitted as worded in the ticket but could not be asserted until ticket 05 lands.
