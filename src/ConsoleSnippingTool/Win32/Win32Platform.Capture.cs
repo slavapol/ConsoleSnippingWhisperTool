@@ -138,23 +138,26 @@ public sealed partial class Win32Platform
 
     // Screen to clipboard
 
+    /// Only the clipboard write maps to false (the core reports it as a refused clipboard). A failure to read the
+    /// screen propagates instead: the core is already Idle by this call, and the message loop's handler reports it
+    /// as an unhandled error. The bitmap is disposed either way.
     public bool TryCaptureToClipboard(Region region)
     {
+        using var bitmap = new Bitmap(region.Width, region.Height, PixelFormat.Format32bppArgb);
+        using (var graphics = Graphics.FromImage(bitmap))
+        {
+            graphics.CopyFromScreen(region.Left, region.Top, 0, 0, bitmap.Size, CopyPixelOperation.SourceCopy);
+        }
+
+        using var png = new MemoryStream();
+        bitmap.Save(png, ImageFormat.Png);
+        png.Position = 0;
+
+        var data = new DataObject();
+        data.SetData(DataFormats.Bitmap, true, bitmap);
+        data.SetData("PNG", false, png);
         try
         {
-            using var bitmap = new Bitmap(region.Width, region.Height, PixelFormat.Format32bppArgb);
-            using (var graphics = Graphics.FromImage(bitmap))
-            {
-                graphics.CopyFromScreen(region.Left, region.Top, 0, 0, bitmap.Size, CopyPixelOperation.SourceCopy);
-            }
-
-            using var png = new MemoryStream();
-            bitmap.Save(png, ImageFormat.Png);
-            png.Position = 0;
-
-            var data = new DataObject();
-            data.SetData(DataFormats.Bitmap, true, bitmap);
-            data.SetData("PNG", false, png);
             Clipboard.SetDataObject(data, copy: true, retryTimes: 10, retryDelay: 50);
             return true;
         }
