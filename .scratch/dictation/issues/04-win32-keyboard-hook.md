@@ -1,6 +1,6 @@
 # 04 Win32: Dictation Hotkey release through a low-level keyboard hook
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 01
 
 Spec: `.scratch/dictation/spec.md` → Hotkey, release and Tap. ADR-0002 for the hook discipline. Notes: `insert-and-hooks.md` in the shared notes directory (section "Low-level keyboard hook").
@@ -26,3 +26,4 @@ None at the unit level: adapter code without logic. Build must be warning-free. 
 
 ## Comments
 - Built on branch `worktree-agent-a5f4154851b8ea80c` in one `04:` commit; `dotnet build` 0 warnings, `dotnet test` 88 green, unchanged: adapter code with no unit tests, per the ticket. `InstallKeyboardHook` first removes any stale hook, resets the once-per-installation flag, stores the chord's main key as a VK code and its modifiers as flags, and installs `WH_KEYBOARD_LL` with the delegate kept in a field (created on the first install, so `Win32Platform.cs` is untouched). The callback posts `WM_DICTATION_KEY_UP` on the first `WM_KEYUP`/`WM_SYSKEYUP` whose `vkCode` is the chord's key or any generic, left or right code of a modifier the chord holds (`VK_CONTROL`/`VK_LCONTROL`/`VK_RCONTROL`, `VK_MENU`/`VK_LMENU`/`VK_RMENU`, `VK_SHIFT`/`VK_LSHIFT`/`VK_RSHIFT`, `VK_LWIN`/`VK_RWIN`), posts nothing for later key-ups of the same installation, and always returns `CallNextHookEx`, so nothing is swallowed. `RemoveKeyboardHook` unhooks immediately. The P/Invoke sits in the new partial `NativeMethods.Keyboard.cs`: `WM_KEYUP`, `WM_SYSKEYUP`, `WH_KEYBOARD_LL`, the eleven VK constants, `KBDLLHOOKSTRUCT`, `LowLevelKeyboardProc`, and `SetWindowsHookExW`/`CallNextHookEx` overloads typed for them; `UnhookWindowsHookEx` and `GetModuleHandleW` are shared with the mouse hook. `MOD_NOREPEAT` on the Dictation Hotkey is kept: the Release comes from the hook, not from autorepeat. `IPlatform` unchanged. Not exercised: the hook was never installed on this machine (live desktop; no debug run, no injected input), so this is verified by build only. The manual check from the ticket (hold, release Win first; hold, release X first; an Alt chord for the `WM_SYSKEYUP` path) is open for whoever next runs the exe.
+- Resolved: branch tip d110688 fast-forwarded onto integration/dictation; build 0 warnings, 88 tests green on integration.
