@@ -1,3 +1,5 @@
+using System.Buffers.Binary;
+
 namespace ConsoleSnippingTool.Core;
 
 /// The built-in key click, synthesised in memory so no audio asset ships. The Win32 adapter plays <see cref="Wav"/>
@@ -6,40 +8,18 @@ public static class ClickSound
 {
     public const int SampleRate = 44100;
     private const short Channels = 1;
-    private const short BitsPerSample = 16;
 
-    /// A complete RIFF/WAVE file: 16-bit mono PCM at 44.1 kHz.
+    /// A complete RIFF/WAVE file: 16-bit mono PCM at 44.1 kHz, written by the shared <see cref="Core.Wav"/> writer.
     public static byte[] Wav()
     {
         var samples = Samples();
-        var dataSize = samples.Length * sizeof(short);
-        const short blockAlign = Channels * BitsPerSample / 8;
-
-        using var stream = new MemoryStream(44 + dataSize);
-        using (var writer = new BinaryWriter(stream, System.Text.Encoding.ASCII, leaveOpen: true))
+        var pcm16 = new byte[samples.Length * sizeof(short)];
+        for (var i = 0; i < samples.Length; i++)
         {
-            writer.Write("RIFF"u8);
-            writer.Write(36 + dataSize);
-            writer.Write("WAVE"u8);
-
-            writer.Write("fmt "u8);
-            writer.Write(16);
-            writer.Write((short)1); // PCM
-            writer.Write(Channels);
-            writer.Write(SampleRate);
-            writer.Write(SampleRate * blockAlign);
-            writer.Write(blockAlign);
-            writer.Write(BitsPerSample);
-
-            writer.Write("data"u8);
-            writer.Write(dataSize);
-            foreach (var sample in samples)
-            {
-                writer.Write(sample);
-            }
+            BinaryPrimitives.WriteInt16LittleEndian(pcm16.AsSpan(i * sizeof(short)), samples[i]);
         }
 
-        return stream.ToArray();
+        return Core.Wav.FromPcm16(pcm16, SampleRate, Channels);
     }
 
     // A key-like click: white noise under a fast exponential decay, loud enough to notice and gone before it annoys.

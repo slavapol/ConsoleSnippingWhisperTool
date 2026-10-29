@@ -8,6 +8,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ConsoleSnippingTool</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- The COM source generator behind the WASAPI interfaces in Win32/Audio emits unsafe code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- WFO0003 asks to move DPI awareness out of the manifest; the spec declares Per-Monitor-V2 in the manifest on purpose. -->
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
   </PropertyGroup>
