@@ -7,10 +7,22 @@ public sealed partial class Win32Platform
     /// The format the upload transport takes (spec: Microphone); a streaming transport would ask for 24 kHz.
     private const int MicrophoneSampleRate = 16000;
 
-    // WASAPI capture of the Default Communication Device is ticket 05. Until then there is no microphone: open fails,
-    // so the core's "No microphone found" path is what a user meets, and close returns an empty clip.
+    /// The capture that is open while Listening; null otherwise, so no device is held between Dictations and Windows
+    /// shows no microphone indicator while Idle.
+    private WasapiCapture? _microphone;
 
-    public bool TryOpenMicrophone() => false;
+    public bool TryOpenMicrophone()
+    {
+        // The core opens once per Listening; closing a stray capture first costs nothing and never leaves a device held.
+        _microphone?.Close();
+        _microphone = WasapiCapture.TryOpen(MicrophoneSampleRate);
+        return _microphone is not null;
+    }
 
-    public AudioClip CloseMicrophone() => new([], MicrophoneSampleRate);
+    public AudioClip CloseMicrophone()
+    {
+        var capture = _microphone;
+        _microphone = null;
+        return new AudioClip(capture?.Close() ?? [], MicrophoneSampleRate);
+    }
 }
