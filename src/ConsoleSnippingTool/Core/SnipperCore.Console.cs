@@ -13,7 +13,8 @@ public sealed partial class SnipperCore
         _platform.ShowConsole();
         _platform.WriteConsoleLine(ToolName);
         _platform.WriteConsoleLine($"Press {_config.Hotkey.Text} to capture");
-        _platform.WriteConsoleLine("Esc or right-click cancels");
+        _platform.WriteConsoleLine($"Hold {_config.DictationHotkey.Text} to dictate");
+        _platform.WriteConsoleLine("Esc or right-click cancels a capture; Esc discards a dictation");
         _platform.WriteConsoleLine("");
         foreach (var line in _log)
         {

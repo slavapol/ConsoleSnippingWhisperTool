@@ -34,11 +34,15 @@ public sealed record Config
         _ => throw new ArgumentOutOfRangeException(nameof(signal), signal, null),
     };
 
-    // Dictation. Parsing and ToJson for these are ticket 02; until then every file yields these defaults.
+    // Dictation
 
     public Hotkey DictationHotkey { get; init; } = Hotkey.DictationDefault;
 
     public int ListeningTimeoutSeconds { get; init; } = 120;
+
+    // Ten minutes of speech is well under the Service's 25 MB ceiling (about 13 minutes at 16 kHz, ADR-0004).
+    private const int MinListeningTimeoutSeconds = 1;
+    private const int MaxListeningTimeoutSeconds = 600;
 
     public string TranscriptionModel { get; init; } = "gpt-transcribe";
 
@@ -61,6 +65,7 @@ public sealed record Config
     };
 
     /// The config.json text for this config, in the shape the spec's Configuration section shows (camelCase, indented).
+    /// The core only ever writes a default Config, so the file it creates never carries a key (spec: user story 22).
     public string ToJson() => JsonSerializer.Serialize(new
     {
         hotkey = Hotkey.Text,
@@ -69,7 +74,22 @@ public sealed record Config
         {
             ready = SoundValue(ReadySound),
             corner = SoundValue(CornerSound),
+            sent = SoundValue(SentSound),
             done = SoundValue(DoneSound),
+        },
+        openAi = new
+        {
+            apiKey = OpenAiApiKey,
+        },
+        dictation = new
+        {
+            hotkey = DictationHotkey.Text,
+            listeningTimeoutSeconds = ListeningTimeoutSeconds,
+            model = TranscriptionModel,
+            language = Language,
+            prompt = Prompt,
+            cleanup = Cleanup,
+            cleanupModel = CleanupModel,
         },
     }, Indented);
 
@@ -90,8 +110,9 @@ public sealed record Config
     private const string BuiltInClick = "built-in click";
 
     /// Reads config.json text with per-field fallback: every field that is missing, of the wrong type or invalid
-    /// takes its default and adds one problem message naming it, in file order. Unparseable JSON yields all defaults
-    /// and one problem. Null text (no file) yields the defaults and no problems. Unknown keys are ignored.
+    /// takes its default and adds one problem message naming it, in file order. An object field (sounds, openAi,
+    /// dictation) that is missing or not an object is one problem for the whole object. Unparseable JSON yields all
+    /// defaults and one problem. Null text (no file) yields the defaults and no problems. Unknown keys are ignored.
     public static (Config Config, IReadOnlyList<string> Problems) Load(string? json)
     {
         var defaults = new Config();
@@ -118,29 +139,98 @@ public sealed record Config
                 return (defaults, [$"{FileName} does not hold a JSON object; using defaults"]);
             }
 
+            // Locals in file order, because the problems list is in file order.
             var problems = new List<string>();
-            var hotkey = LoadHotkey(root, defaults.Hotkey, problems);
-            var armedTimeoutSeconds = LoadArmedTimeout(root, defaults.ArmedTimeoutSeconds, problems);
+            var hotkey = LoadHotkey(root, "hotkey", defaults.Hotkey, problems) ?? defaults.Hotkey;
+            var armedTimeoutSeconds = LoadTimeout(root, "armedTimeoutSeconds", MinArmedTimeoutSeconds, MaxArmedTimeoutSeconds, defaults.ArmedTimeoutSeconds, problems);
             var sounds = LoadSounds(root, problems);
+            var readySound = LoadSound(sounds, "sounds.ready", defaults.ReadySound, problems);
+            var cornerSound = LoadSound(sounds, "sounds.corner", defaults.CornerSound, problems);
+            var sentSound = LoadSound(sounds, "sounds.sent", defaults.SentSound, problems);
+            var doneSound = LoadSound(sounds, "sounds.done", defaults.DoneSound, problems);
+            var openAi = LoadObject(root, "openAi", problems);
+            var openAiApiKey = LoadOptionalString(openAi, "openAi.apiKey", allowEmpty: false, problems);
+            var dictation = LoadObject(root, "dictation", problems);
+            var dictationHotkey = LoadHotkey(dictation, "dictation.hotkey", defaults.DictationHotkey, problems);
+            if (dictationHotkey is { } parsed && parsed.Modifiers == hotkey.Modifiers && parsed.VirtualKey == hotkey.VirtualKey)
+            {
+                // Spec: two identical Hotkeys are a config problem and the Dictation one is reset, so both jobs stay reachable.
+                problems.Add($"{FileName}: dictation.hotkey {parsed.Text} is the same as hotkey; using default {defaults.DictationHotkey.Text}");
+                dictationHotkey = null;
+            }
+
+            var listeningTimeoutSeconds = LoadTimeout(dictation, "dictation.listeningTimeoutSeconds", MinListeningTimeoutSeconds, MaxListeningTimeoutSeconds, defaults.ListeningTimeoutSeconds, problems);
+            var transcriptionModel = LoadString(dictation, "dictation.model", defaults.TranscriptionModel, problems);
+            var language = LoadOptionalString(dictation, "dictation.language", allowEmpty: false, problems);
+            var prompt = LoadOptionalString(dictation, "dictation.prompt", allowEmpty: true, problems);
+            var cleanup = LoadBool(dictation, "dictation.cleanup", defaults.Cleanup, problems);
+            var cleanupModel = LoadString(dictation, "dictation.cleanupModel", defaults.CleanupModel, problems);
             var config = defaults with
             {
                 Hotkey = hotkey,
                 ArmedTimeoutSeconds = armedTimeoutSeconds,
-                ReadySound = LoadSound(sounds, "ready", defaults.ReadySound, problems),
-                CornerSound = LoadSound(sounds, "corner", defaults.CornerSound, problems),
-                DoneSound = LoadSound(sounds, "done", defaults.DoneSound, problems),
+                ReadySound = readySound,
+                CornerSound = cornerSound,
+                SentSound = sentSound,
+                DoneSound = doneSound,
+                OpenAiApiKey = openAiApiKey,
+                DictationHotkey = dictationHotkey ?? defaults.DictationHotkey,
+                ListeningTimeoutSeconds = listeningTimeoutSeconds,
+                TranscriptionModel = transcriptionModel,
+                Language = language,
+                Prompt = prompt,
+                Cleanup = cleanup,
+                CleanupModel = cleanupModel,
             };
             return (config, problems);
         }
     }
 
-    private static Hotkey LoadHotkey(JsonElement root, Hotkey fallback, List<string> problems)
+    // Every loader takes the object the field sits in (null when that object already fell back and was reported, so
+    // the field takes its default silently) and the field's dotted path for the message ("dictation.model").
+
+    /// The field, or null when the parent is absent or the field is missing (reported here with the fallback text).
+    private static JsonElement? Field(JsonElement? parent, string path, string fallback, List<string> problems)
     {
-        const string field = "hotkey";
-        if (!root.TryGetProperty(field, out var value))
+        if (parent is null)
         {
-            problems.Add(Missing(field, fallback.Text));
-            return fallback;
+            return null;
+        }
+
+        var name = path[(path.LastIndexOf('.') + 1)..];
+        if (parent.Value.TryGetProperty(name, out var value))
+        {
+            return value;
+        }
+
+        problems.Add(Missing(path, fallback));
+        return null;
+    }
+
+    /// The object at path, or null (with one problem for the whole object) when it is missing or not an object.
+    private static JsonElement? LoadObject(JsonElement root, string path, List<string> problems)
+    {
+        if (!root.TryGetProperty(path, out var value))
+        {
+            problems.Add($"{FileName}: {path} is missing; using defaults");
+            return null;
+        }
+
+        if (value.ValueKind == JsonValueKind.Object)
+        {
+            return value;
+        }
+
+        problems.Add($"{FileName}: {path} {value.GetRawText()} is not an object; using defaults");
+        return null;
+    }
+
+    /// The parsed Hotkey, or null when the field fell back (already reported) so the caller can tell a fallback apart.
+    private static Hotkey? LoadHotkey(JsonElement? parent, string path, Hotkey fallback, List<string> problems)
+    {
+        if (Field(parent, path, fallback.Text, problems) is not { } value)
+        {
+            return null;
         }
 
         if (value.ValueKind == JsonValueKind.String && Hotkey.TryParse(value.GetString(), out var hotkey))
@@ -148,26 +238,23 @@ public sealed record Config
             return hotkey;
         }
 
-        problems.Add(Invalid(field, value, "is not a valid Hotkey", fallback.Text));
-        return fallback;
+        problems.Add(Invalid(path, value, "is not a valid Hotkey", fallback.Text));
+        return null;
     }
 
-    private static int LoadArmedTimeout(JsonElement root, int fallback, List<string> problems)
+    private static int LoadTimeout(JsonElement? parent, string path, int min, int max, int fallback, List<string> problems)
     {
-        const string field = "armedTimeoutSeconds";
-        if (!root.TryGetProperty(field, out var value))
+        if (Field(parent, path, fallback.ToString(), problems) is not { } value)
         {
-            problems.Add(Missing(field, fallback.ToString()));
             return fallback;
         }
 
-        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var seconds)
-            && seconds is >= MinArmedTimeoutSeconds and <= MaxArmedTimeoutSeconds)
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var seconds) && seconds >= min && seconds <= max)
         {
             return seconds;
         }
 
-        problems.Add(Invalid(field, value, $"is not an integer from {MinArmedTimeoutSeconds} to {MaxArmedTimeoutSeconds}", fallback.ToString()));
+        problems.Add(Invalid(path, value, $"is not an integer from {min} to {max}", fallback.ToString()));
         return fallback;
     }
 
@@ -190,17 +277,10 @@ public sealed record Config
         return null;
     }
 
-    private static SoundSource LoadSound(JsonElement? sounds, string name, SoundSource fallback, List<string> problems)
+    private static SoundSource LoadSound(JsonElement? sounds, string path, SoundSource fallback, List<string> problems)
     {
-        if (sounds is null)
+        if (Field(sounds, path, BuiltInClick, problems) is not { } value)
         {
-            return fallback; // already reported once for the whole "sounds" field
-        }
-
-        var field = $"sounds.{name}";
-        if (!sounds.Value.TryGetProperty(name, out var value))
-        {
-            problems.Add(Missing(field, BuiltInClick));
             return fallback;
         }
 
@@ -213,9 +293,64 @@ public sealed record Config
                     ? new SoundSource.None()
                     : new SoundSource.File(text);
             default:
-                problems.Add(Invalid(field, value, "is not null, \"none\" or a .wav path", BuiltInClick));
+                problems.Add(Invalid(path, value, "is not null, \"none\" or a .wav path", BuiltInClick));
                 return fallback;
         }
+    }
+
+    /// A string that must have content: a model name.
+    private static string LoadString(JsonElement? parent, string path, string fallback, List<string> problems)
+    {
+        if (Field(parent, path, fallback, problems) is not { } value)
+        {
+            return fallback;
+        }
+
+        if (value.ValueKind == JsonValueKind.String && value.GetString() is { } text && !string.IsNullOrWhiteSpace(text))
+        {
+            return text;
+        }
+
+        problems.Add(Invalid(path, value, "is not a non-empty string", fallback));
+        return fallback;
+    }
+
+    /// null or a string, passed through; the default is null. allowEmpty lets a blank string through (the prompt).
+    private static string? LoadOptionalString(JsonElement? parent, string path, bool allowEmpty, List<string> problems)
+    {
+        const string fallback = "null";
+        if (Field(parent, path, fallback, problems) is not { } value)
+        {
+            return null;
+        }
+
+        switch (value.ValueKind)
+        {
+            case JsonValueKind.Null:
+                return null;
+            case JsonValueKind.String when allowEmpty || !string.IsNullOrWhiteSpace(value.GetString()):
+                return value.GetString();
+            default:
+                problems.Add(Invalid(path, value, allowEmpty ? "is not null or a string" : "is not null or a non-empty string", fallback));
+                return null;
+        }
+    }
+
+    private static bool LoadBool(JsonElement? parent, string path, bool fallback, List<string> problems)
+    {
+        var fallbackText = fallback ? "true" : "false";
+        if (Field(parent, path, fallbackText, problems) is not { } value)
+        {
+            return fallback;
+        }
+
+        if (value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            return value.GetBoolean();
+        }
+
+        problems.Add(Invalid(path, value, "is not true or false", fallbackText));
+        return fallback;
     }
 
     private static string Missing(string field, string fallback) =>

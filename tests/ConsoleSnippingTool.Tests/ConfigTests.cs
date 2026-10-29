@@ -7,20 +7,47 @@ public class ConfigTests
     [Fact]
     public void A_configured_Hotkey_is_registered_and_shown_in_the_tray_tooltip()
     {
-        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey: "Ctrl+Shift+F5") };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey: "Ctrl+Shift+F5"), Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
 
         Assert.Contains("RegisterHotkey(Ctrl+Shift+F5)", fake.Calls);
-        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (Ctrl+Shift+F5))", fake.Calls);
+        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Shift+F5, dictate Ctrl+Win+X))", fake.Calls);
         Assert.Empty(Balloons(fake));
+    }
+
+    [Fact]
+    public void A_configured_Dictation_Hotkey_is_registered_and_shown_in_the_tray_tooltip()
+    {
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(dictationHotkey: "ctrl+alt+d"), Environment = ApiKey.InEnvironment };
+        var core = new SnipperCore(fake);
+
+        core.Start();
+
+        Assert.Contains("RegisterDictationHotkey(Ctrl+Alt+D)", fake.Calls);
+        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Alt+D))", fake.Calls);
+        Assert.Empty(Balloons(fake));
+    }
+
+    [Fact]
+    public void Identical_Hotkeys_register_the_Capture_one_as_written_and_the_Dictation_default_with_one_balloon()
+    {
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey: "Ctrl+Alt+D", dictationHotkey: "Ctrl+Alt+D"), Environment = ApiKey.InEnvironment };
+        var core = new SnipperCore(fake);
+
+        core.Start();
+
+        Assert.Contains("RegisterHotkey(Ctrl+Alt+D)", fake.Calls);
+        Assert.Contains("RegisterDictationHotkey(Ctrl+Win+X)", fake.Calls);
+        var balloon = Assert.Single(Balloons(fake));
+        Assert.Equal("ShowBalloon(ConsoleSnippingTool: config.json: dictation.hotkey Ctrl+Alt+D is the same as hotkey; using default Ctrl+Win+X)", balloon);
     }
 
     [Fact]
     public void A_Hotkey_with_odd_case_and_spacing_is_normalised_before_registration()
     {
-        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey: " ctrl + win + z ") };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey: " ctrl + win + z "), Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -36,13 +63,13 @@ public class ConfigTests
     [InlineData("Ctrl+Home")]   // unsupported key
     public void An_invalid_Hotkey_falls_back_to_the_default_with_one_balloon_naming_the_field(string hotkey)
     {
-        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey) };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey), Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
 
         Assert.Contains("RegisterHotkey(Ctrl+Win+Z)", fake.Calls);
-        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (Ctrl+Win+Z))", fake.Calls);
+        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X))", fake.Calls);
         var balloon = Assert.Single(Balloons(fake));
         Assert.Equal($"ShowBalloon(ConsoleSnippingTool: config.json: hotkey \"{hotkey}\" is not a valid Hotkey; using default Ctrl+Win+Z)", balloon);
     }
@@ -55,8 +82,8 @@ public class ConfigTests
     [InlineData("100000000")] // would overflow the adapter's millisecond timer interval
     public void A_bad_Armed_timeout_falls_back_to_30_with_a_balloon_while_a_valid_Hotkey_in_the_same_file_is_honoured(string timeout)
     {
-        var json = $$"""{ "hotkey": "Ctrl+Shift+F5", "armedTimeoutSeconds": {{timeout}}, "sounds": { "ready": null, "corner": null, "done": null } }""";
-        var fake = new FakePlatform { ConfigText = json };
+        var json = ConfigJson.With(hotkey: "Ctrl+Shift+F5", armedTimeoutSeconds: timeout);
+        var fake = new FakePlatform { ConfigText = json, Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -72,7 +99,7 @@ public class ConfigTests
     [InlineData(3600)]
     public void A_configured_Armed_timeout_is_what_the_Hotkey_starts_the_timer_with(int seconds)
     {
-        var fake = new FakePlatform { ConfigText = ConfigJson.With(armedTimeoutSeconds: seconds) };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(armedTimeoutSeconds: seconds.ToString()), Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
         core.Start();
         fake.Calls.Clear();
@@ -86,7 +113,7 @@ public class ConfigTests
     [Fact]
     public void Unparseable_JSON_yields_all_defaults_and_one_balloon()
     {
-        var fake = new FakePlatform { ConfigText = "{ \"hotkey\": \"Ctrl+Shift+F5\", " };
+        var fake = new FakePlatform { ConfigText = "{ \"hotkey\": \"Ctrl+Shift+F5\", ", Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -98,7 +125,8 @@ public class ConfigTests
             "TrySetSound(Done,BuiltIn)",
             "TrySetSound(Sent,BuiltIn)",
             "RegisterHotkey(Ctrl+Win+Z)",
-            "SetTrayTooltip(ConsoleSnippingTool (Ctrl+Win+Z))",
+            "RegisterDictationHotkey(Ctrl+Win+X)",
+            "SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X))",
             "SetTrayMenuState(showEnabled:true,hideEnabled:false)",
         ];
         var balloon = Assert.Single(Balloons(fake));
@@ -111,7 +139,7 @@ public class ConfigTests
     [Fact]
     public void A_signal_set_to_none_is_silenced()
     {
-        var fake = new FakePlatform { ConfigText = ConfigJson.With(done: "\"none\"") };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(done: "\"none\""), Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -125,7 +153,7 @@ public class ConfigTests
     [Fact]
     public void A_signal_pointed_at_a_wav_path_is_set_from_that_file()
     {
-        var fake = new FakePlatform { ConfigText = ConfigJson.With(ready: "\"click.wav\"") };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(ready: "\"click.wav\""), Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -137,7 +165,7 @@ public class ConfigTests
     [Fact]
     public void Each_missing_field_is_reported_once_and_unknown_keys_are_ignored()
     {
-        var fake = new FakePlatform { ConfigText = "{ \"hotKey\": \"Ctrl+Shift+F5\", \"sounds\": { \"ready\": null, \"corner\": null } }" };
+        var fake = new FakePlatform { ConfigText = "{ \"hotKey\": \"Ctrl+Shift+F5\", \"sounds\": { \"ready\": null, \"corner\": null } }", Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -146,14 +174,17 @@ public class ConfigTests
         [
             "ShowBalloon(ConsoleSnippingTool: config.json: hotkey is missing; using default Ctrl+Win+Z)",
             "ShowBalloon(ConsoleSnippingTool: config.json: armedTimeoutSeconds is missing; using default 30)",
+            "ShowBalloon(ConsoleSnippingTool: config.json: sounds.sent is missing; using default built-in click)",
             "ShowBalloon(ConsoleSnippingTool: config.json: sounds.done is missing; using default built-in click)",
+            "ShowBalloon(ConsoleSnippingTool: config.json: openAi is missing; using defaults)",
+            "ShowBalloon(ConsoleSnippingTool: config.json: dictation is missing; using defaults)",
         ];
         Assert.Equal(expectedBalloons, Balloons(fake));
         Assert.Contains("RegisterHotkey(Ctrl+Win+Z)", fake.Calls);
     }
 
     [Fact]
-    public void An_empty_object_reports_the_three_top_level_fields_in_file_order()
+    public void An_empty_object_reports_the_five_top_level_fields_in_file_order()
     {
         var (config, problems) = Config.Load("{}");
 
@@ -162,18 +193,174 @@ public class ConfigTests
             "config.json: hotkey is missing; using default Ctrl+Win+Z",
             "config.json: armedTimeoutSeconds is missing; using default 30",
             "config.json: sounds is missing; using default built-in click",
+            "config.json: openAi is missing; using defaults",
+            "config.json: dictation is missing; using defaults",
         ];
         Assert.Equal(expected, problems);
         Assert.Equal(new Config(), config);
     }
 
     [Fact]
+    public void Empty_openAi_and_dictation_objects_report_each_field_missing_with_its_default_in_file_order()
+    {
+        var json = """{ "hotkey": "Ctrl+Win+Z", "armedTimeoutSeconds": 30, "sounds": { "ready": null, "corner": null, "sent": null, "done": null }, "openAi": {}, "dictation": {} }""";
+
+        var (config, problems) = Config.Load(json);
+
+        string[] expected =
+        [
+            "config.json: openAi.apiKey is missing; using default null",
+            "config.json: dictation.hotkey is missing; using default Ctrl+Win+X",
+            "config.json: dictation.listeningTimeoutSeconds is missing; using default 120",
+            "config.json: dictation.model is missing; using default gpt-transcribe",
+            "config.json: dictation.language is missing; using default null",
+            "config.json: dictation.prompt is missing; using default null",
+            "config.json: dictation.cleanup is missing; using default false",
+            "config.json: dictation.cleanupModel is missing; using default gpt-6-luna",
+        ];
+        Assert.Equal(expected, problems);
+        Assert.Equal(new Config(), config);
+    }
+
+    [Fact]
+    public void Valid_openAi_and_Dictation_values_are_honoured_without_problems()
+    {
+        var json = ConfigJson.With(
+            apiKey: "\"sk-test\"",
+            dictationHotkey: "ctrl + alt + d",
+            listeningTimeoutSeconds: "45",
+            model: "\"gpt-transcribe-2\"",
+            language: "\"en\"",
+            prompt: "\"ACME, Kubernetes\"",
+            cleanup: "true",
+            cleanupModel: "\"gpt-7-mini\"");
+
+        var (config, problems) = Config.Load(json);
+
+        Assert.Empty(problems);
+        var expected = new Config
+        {
+            OpenAiApiKey = "sk-test",
+            DictationHotkey = new Hotkey(HotkeyModifiers.Control | HotkeyModifiers.Alt, 0x44, "Ctrl+Alt+D"),
+            ListeningTimeoutSeconds = 45,
+            TranscriptionModel = "gpt-transcribe-2",
+            Language = "en",
+            Prompt = "ACME, Kubernetes",
+            Cleanup = true,
+            CleanupModel = "gpt-7-mini",
+        };
+        Assert.Equal(expected, config);
+    }
+
+    [Theory]
+    [InlineData("1")]
+    [InlineData("600")]
+    public void A_Listening_timeout_at_either_end_of_1_to_600_is_honoured(string seconds)
+    {
+        var (config, problems) = Config.Load(ConfigJson.With(listeningTimeoutSeconds: seconds));
+
+        Assert.Empty(problems);
+        Assert.Equal(int.Parse(seconds), config.ListeningTimeoutSeconds);
+    }
+
+    /// One wrong value per file, with the one problem it must produce; the rest of the file stays at the defaults.
+    public static TheoryData<string, string> BadOpenAiAndDictationValues => new()
+    {
+        { ConfigJson.With(sent: "7"), "config.json: sounds.sent 7 is not null, \"none\" or a .wav path; using default built-in click" },
+        { ConfigJson.With(apiKey: "123"), "config.json: openAi.apiKey 123 is not null or a non-empty string; using default null" },
+        { ConfigJson.With(apiKey: "\"\""), "config.json: openAi.apiKey \"\" is not null or a non-empty string; using default null" },
+        { ConfigJson.With(dictationHotkey: "Ctrl+Home"), "config.json: dictation.hotkey \"Ctrl+Home\" is not a valid Hotkey; using default Ctrl+Win+X" },
+        { ConfigJson.With(listeningTimeoutSeconds: "0"), "config.json: dictation.listeningTimeoutSeconds 0 is not an integer from 1 to 600; using default 120" },
+        { ConfigJson.With(listeningTimeoutSeconds: "601"), "config.json: dictation.listeningTimeoutSeconds 601 is not an integer from 1 to 600; using default 120" },
+        { ConfigJson.With(listeningTimeoutSeconds: "\"long\""), "config.json: dictation.listeningTimeoutSeconds \"long\" is not an integer from 1 to 600; using default 120" },
+        { ConfigJson.With(model: "\"\""), "config.json: dictation.model \"\" is not a non-empty string; using default gpt-transcribe" },
+        { ConfigJson.With(model: "5"), "config.json: dictation.model 5 is not a non-empty string; using default gpt-transcribe" },
+        { ConfigJson.With(language: "\" \""), "config.json: dictation.language \" \" is not null or a non-empty string; using default null" },
+        { ConfigJson.With(language: "true"), "config.json: dictation.language true is not null or a non-empty string; using default null" },
+        { ConfigJson.With(prompt: "5"), "config.json: dictation.prompt 5 is not null or a string; using default null" },
+        { ConfigJson.With(cleanup: "\"yes\""), "config.json: dictation.cleanup \"yes\" is not true or false; using default false" },
+        { ConfigJson.With(cleanupModel: "\"\""), "config.json: dictation.cleanupModel \"\" is not a non-empty string; using default gpt-6-luna" },
+    };
+
+    [Theory]
+    [MemberData(nameof(BadOpenAiAndDictationValues))]
+    public void A_bad_openAi_or_Dictation_value_falls_back_to_its_default_with_one_problem_naming_the_field(string json, string problem)
+    {
+        var (config, problems) = Config.Load(json);
+
+        Assert.Equal([problem], problems);
+        Assert.Equal(new Config(), config);
+    }
+
+    [Fact]
+    public void An_empty_prompt_is_passed_through_as_it_is()
+    {
+        var (config, problems) = Config.Load(ConfigJson.With(prompt: "\"\""));
+
+        Assert.Empty(problems);
+        Assert.Equal("", config.Prompt);
+    }
+
+    [Fact]
+    public void An_openAi_value_that_is_not_an_object_is_reported_once_for_the_whole_field()
+    {
+        var json = """{ "hotkey": "Ctrl+Win+Z", "armedTimeoutSeconds": 30, "sounds": { "ready": null, "corner": null, "sent": null, "done": null }, "openAi": "sk-test", "dictation": { "hotkey": "Ctrl+Win+X", "listeningTimeoutSeconds": 120, "model": "gpt-transcribe", "language": null, "prompt": null, "cleanup": false, "cleanupModel": "gpt-6-luna" } }""";
+
+        var (config, problems) = Config.Load(json);
+
+        Assert.Equal(["config.json: openAi \"sk-test\" is not an object; using defaults"], problems);
+        Assert.Equal(new Config(), config);
+    }
+
+    [Fact]
+    public void A_dictation_value_that_is_an_array_is_reported_once_and_every_Dictation_field_takes_its_default()
+    {
+        var json = """{ "hotkey": "Ctrl+Win+Z", "armedTimeoutSeconds": 30, "sounds": { "ready": null, "corner": null, "sent": null, "done": null }, "openAi": { "apiKey": null }, "dictation": [1, 2] }""";
+
+        var (config, problems) = Config.Load(json);
+
+        Assert.Equal(["config.json: dictation [1, 2] is not an object; using defaults"], problems);
+        Assert.Equal(new Config(), config);
+    }
+
+    [Fact]
+    public void Identical_Hotkeys_are_reported_once_and_the_Dictation_one_falls_back_to_its_default()
+    {
+        var (config, problems) = Config.Load(ConfigJson.With(hotkey: "Ctrl+Alt+D", dictationHotkey: "ctrl+alt+d"));
+
+        Assert.Equal(["config.json: dictation.hotkey Ctrl+Alt+D is the same as hotkey; using default Ctrl+Win+X"], problems);
+        Assert.Equal("Ctrl+Alt+D", config.Hotkey.Text);
+        Assert.Equal(Hotkey.DictationDefault, config.DictationHotkey);
+    }
+
+    [Fact]
+    public void A_Sent_signal_set_to_none_is_silenced()
+    {
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(sent: "\"none\""), Environment = ApiKey.InEnvironment };
+        var core = new SnipperCore(fake);
+
+        core.Start();
+
+        Assert.Contains("TrySetSound(Sent,None)", fake.Calls);
+        Assert.Contains("TrySetSound(Done,BuiltIn)", fake.Calls);
+        Assert.Empty(Balloons(fake));
+    }
+
+    [Fact]
     public void A_sounds_value_that_is_not_an_object_is_reported_once_for_the_whole_field()
     {
-        var (config, problems) = Config.Load("{ \"hotkey\": \"Ctrl+Win+Z\", \"armedTimeoutSeconds\": 30, \"sounds\": \"none\" }");
+        var json = """{ "hotkey": "Ctrl+Win+Z", "armedTimeoutSeconds": 30, "sounds": "none", "openAi": { "apiKey": null }, "dictation": { "hotkey": "Ctrl+Win+X", "listeningTimeoutSeconds": 120, "model": "gpt-transcribe", "language": null, "prompt": null, "cleanup": false, "cleanupModel": "gpt-6-luna" } }""";
+
+        var (config, problems) = Config.Load(json);
 
         Assert.Equal(["config.json: sounds \"none\" is not an object; using default built-in click"], problems);
         Assert.Equal(new Config(), config);
+    }
+
+    [Fact]
+    public void A_default_Config_serialises_to_the_default_file_the_spec_shows()
+    {
+        Assert.Equal(Normalise(ConfigJson.With()), Normalise(new Config().ToJson()));
     }
 
     [Fact]
@@ -184,6 +371,8 @@ public class ConfigTests
         Assert.Empty(problems);
         Assert.Equal(new Config(), config);
     }
+
+    private static string Normalise(string text) => text.ReplaceLineEndings("\n").TrimEnd();
 
     [Fact]
     public void No_file_means_defaults_and_nothing_to_report()

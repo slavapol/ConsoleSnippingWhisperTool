@@ -1,23 +1,46 @@
 namespace ConsoleSnippingTool.Tests;
 
 /// A complete config.json in the shape the spec's Configuration section shows (and Config.ToJson writes), so a test
-/// states only the field it is about. With no arguments it is the default file. Sound values are JSON literals:
-/// null, "none" or "x.wav", quotes included.
+/// states only the field it is about. With no arguments it is the default file. The two Hotkeys are plain text (the
+/// template quotes them); every other value is a JSON literal, quotes included (null, "none", "x.wav", 120, "yes",
+/// false), so a test can state a wrong type as easily as a right value.
 internal static class ConfigJson
 {
     public static string With(
         string hotkey = "Ctrl+Win+Z",
-        int armedTimeoutSeconds = 30,
+        string armedTimeoutSeconds = "30",
         string ready = "null",
         string corner = "null",
-        string done = "null") => $$"""
+        string sent = "null",
+        string done = "null",
+        string apiKey = "null",
+        string dictationHotkey = "Ctrl+Win+X",
+        string listeningTimeoutSeconds = "120",
+        string model = "\"gpt-transcribe\"",
+        string language = "null",
+        string prompt = "null",
+        string cleanup = "false",
+        string cleanupModel = "\"gpt-6-luna\"") => $$"""
         {
           "hotkey": "{{hotkey}}",
           "armedTimeoutSeconds": {{armedTimeoutSeconds}},
           "sounds": {
             "ready": {{ready}},
             "corner": {{corner}},
+            "sent": {{sent}},
             "done": {{done}}
+          },
+          "openAi": {
+            "apiKey": {{apiKey}}
+          },
+          "dictation": {
+            "hotkey": "{{dictationHotkey}}",
+            "listeningTimeoutSeconds": {{listeningTimeoutSeconds}},
+            "model": {{model}},
+            "language": {{language}},
+            "prompt": {{prompt}},
+            "cleanup": {{cleanup}},
+            "cleanupModel": {{cleanupModel}}
           }
         }
         """;

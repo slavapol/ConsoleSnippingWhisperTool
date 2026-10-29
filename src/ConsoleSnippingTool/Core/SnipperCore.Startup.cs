@@ -6,9 +6,24 @@ public sealed partial class SnipperCore
     {
         AcquireInstance();
         LoadConfig();
+        ResolveApiKey();
         SetUpSounds();
         RegisterHotkey();
+        RegisterDictationHotkey();
         SetUpTray();
+    }
+
+    private const string ApiKeyVariable = "OPENAI_API_KEY";
+
+    /// openAi.apiKey when the file sets it, else OPENAI_API_KEY; a blank value counts as no key.
+    private void ResolveApiKey()
+    {
+        var key = _config.OpenAiApiKey ?? _platform.ReadEnvironmentVariable(ApiKeyVariable);
+        _apiKey = string.IsNullOrWhiteSpace(key) ? null : key;
+        if (_apiKey is null)
+        {
+            Report(NoApiKeyMessage);
+        }
     }
 
     private static readonly TimeSpan PreviousInstanceExitTimeout = TimeSpan.FromSeconds(5);
@@ -78,12 +93,26 @@ public sealed partial class SnipperCore
             return;
         }
 
-        Report($"Hotkey {_config.Hotkey.Text} is already taken by another app; edit config.json and relaunch");
+        Report(HotkeyTaken(_config.Hotkey));
     }
+
+    /// A taken Dictation Hotkey leaves Capture working (spec: user story 37).
+    private void RegisterDictationHotkey()
+    {
+        if (_platform.RegisterDictationHotkey(_config.DictationHotkey))
+        {
+            return;
+        }
+
+        Report(HotkeyTaken(_config.DictationHotkey));
+    }
+
+    private static string HotkeyTaken(Hotkey hotkey) =>
+        $"Hotkey {hotkey.Text} is already taken by another app; edit config.json and relaunch";
 
     private void SetUpTray()
     {
-        _platform.SetTrayTooltip($"{ToolName} ({_config.Hotkey.Text})");
+        _platform.SetTrayTooltip($"{ToolName} (capture {_config.Hotkey.Text}, dictate {_config.DictationHotkey.Text})");
         _platform.SetTrayMenuState(showEnabled: true, hideEnabled: false);
     }
 
@@ -100,6 +129,7 @@ public sealed partial class SnipperCore
         // No-op while the Console is hidden; lets the adapter detach its console handler before the process goes.
         OnHide();
         _platform.UnregisterHotkey();
+        _platform.UnregisterDictationHotkey();
         _platform.RemoveTrayIcon();
         _platform.Exit();
     }

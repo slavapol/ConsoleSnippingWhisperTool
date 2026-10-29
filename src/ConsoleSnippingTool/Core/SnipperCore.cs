@@ -22,6 +22,14 @@ public sealed partial class SnipperCore
     private State _state = State.Idle;
     private Config _config = new();
 
+    /// The API key resolved at startup from openAi.apiKey or else OPENAI_API_KEY; null when there is none. Held in
+    /// memory only: never logged, never written to config.json (spec: user stories 22 and 39).
+    private string? _apiKey;
+
+    /// Reported at startup, and again on each Dictation Hotkey press while there is no key (spec: user story 23).
+    private const string NoApiKeyMessage =
+        "Dictation needs an API key: set openAi.apiKey in config.json or the OPENAI_API_KEY environment variable";
+
     /// True between Show and Hide.
     private bool ConsoleShown { get; set; }
 

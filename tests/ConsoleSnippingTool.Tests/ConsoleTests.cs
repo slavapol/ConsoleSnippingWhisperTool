@@ -4,12 +4,13 @@ namespace ConsoleSnippingTool.Tests;
 
 public class ConsoleTests
 {
-    /// The header Show prints before the ring, for the default Hotkey.
+    /// The header Show prints before the ring, for the default Hotkeys.
     private static readonly string[] Header =
     [
         "WriteConsoleLine(ConsoleSnippingTool)",
         "WriteConsoleLine(Press Ctrl+Win+Z to capture)",
-        "WriteConsoleLine(Esc or right-click cancels)",
+        "WriteConsoleLine(Hold Ctrl+Win+X to dictate)",
+        "WriteConsoleLine(Esc or right-click cancels a capture; Esc discards a dictation)",
         "WriteConsoleLine()",
     ];
 
@@ -26,7 +27,7 @@ public class ConsoleTests
     [Fact]
     public void Show_opens_the_Console_prints_the_header_and_enables_Hide()
     {
-        var fake = new FakePlatform();
+        var fake = new FakePlatform { Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
         core.Start();
         fake.Calls.Clear();
@@ -43,9 +44,34 @@ public class ConsoleTests
     }
 
     [Fact]
+    public void The_header_names_the_configured_Hotkeys()
+    {
+        var fake = new FakePlatform
+        {
+            ConfigText = ConfigJson.With(hotkey: "Ctrl+Shift+F5", dictationHotkey: "Ctrl+Alt+D"),
+            Environment = ApiKey.InEnvironment,
+        };
+        var core = new SnipperCore(fake);
+        core.Start();
+        fake.Calls.Clear();
+
+        core.OnShow();
+
+        string[] expected =
+        [
+            "WriteConsoleLine(ConsoleSnippingTool)",
+            "WriteConsoleLine(Press Ctrl+Shift+F5 to capture)",
+            "WriteConsoleLine(Hold Ctrl+Alt+D to dictate)",
+            "WriteConsoleLine(Esc or right-click cancels a capture; Esc discards a dictation)",
+            "WriteConsoleLine()",
+        ];
+        Assert.Equal(expected, fake.Calls.Where(IsConsoleLine));
+    }
+
+    [Fact]
     public void A_line_logged_while_shown_is_written_at_once_with_its_timestamp_and_only_once()
     {
-        var fake = new FakePlatform { RegisterHotkeyResult = false };
+        var fake = new FakePlatform { RegisterHotkeyResult = false, Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake, At_09_05_07);
         core.OnShow();
         fake.Calls.Clear();
@@ -58,7 +84,7 @@ public class ConsoleTests
     [Fact]
     public void Lines_logged_while_hidden_follow_the_header_on_the_next_Show_oldest_first()
     {
-        var fake = new FakePlatform { RegisterHotkeyResult = false };
+        var fake = new FakePlatform { RegisterHotkeyResult = false, Environment = ApiKey.InEnvironment };
         fake.AcquireResults.Enqueue(false);
         var core = new SnipperCore(fake, At_09_05_07);
         core.Start();
@@ -80,7 +106,7 @@ public class ConsoleTests
     [Fact]
     public void Hide_closes_the_Console_and_enables_Show_and_the_next_Show_brings_the_log_back()
     {
-        var fake = new FakePlatform { RegisterHotkeyResult = false };
+        var fake = new FakePlatform { RegisterHotkeyResult = false, Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake, At_09_05_07);
         core.Start();
         core.OnShow();
@@ -104,7 +130,7 @@ public class ConsoleTests
     [Fact]
     public void Show_while_already_shown_does_nothing()
     {
-        var fake = new FakePlatform();
+        var fake = new FakePlatform { Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
         core.Start();
         core.OnShow();
@@ -118,7 +144,7 @@ public class ConsoleTests
     [Fact]
     public void Hide_while_already_hidden_does_nothing()
     {
-        var fake = new FakePlatform();
+        var fake = new FakePlatform { Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
         core.Start();
         fake.Calls.Clear();
@@ -133,7 +159,7 @@ public class ConsoleTests
     {
         var second = 0;
         DateTime OneSecondPerLine() => new DateTime(2026, 10, 28, 0, 0, 0).AddSeconds(second++);
-        var fake = new FakePlatform();
+        var fake = new FakePlatform { Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake, OneSecondPerLine);
         core.Start();
         for (var i = 0; i < 125; i++)
@@ -152,9 +178,9 @@ public class ConsoleTests
     }
 
     [Fact]
-    public void Exit_while_shown_hides_the_Console_before_releasing_the_Hotkey_and_the_tray_icon()
+    public void Exit_while_shown_hides_the_Console_before_releasing_the_Hotkeys_and_the_tray_icon()
     {
-        var fake = new FakePlatform();
+        var fake = new FakePlatform { Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
         core.Start();
         core.OnShow();
@@ -167,6 +193,7 @@ public class ConsoleTests
             "HideConsole()",
             "SetTrayMenuState(showEnabled:true,hideEnabled:false)",
             "UnregisterHotkey()",
+            "UnregisterDictationHotkey()",
             "RemoveTrayIcon()",
             "Exit()",
         ];
