@@ -232,6 +232,29 @@ public class ConfigTests
         Assert.False(Hotkey.TryParse(text, out _));
     }
 
+    [Fact]
+    public void A_default_Config_holds_the_Dictation_defaults_the_spec_names()
+    {
+        var config = new Config();
+
+        Assert.Equal("Ctrl+Win+X", config.DictationHotkey.Text);
+        Assert.Equal(120, config.ListeningTimeoutSeconds);
+        Assert.Equal("gpt-transcribe", config.TranscriptionModel);
+        Assert.Null(config.Language);
+        Assert.Null(config.Prompt);
+        Assert.False(config.Cleanup);
+        Assert.Equal("gpt-6-luna", config.CleanupModel);
+        Assert.Null(config.OpenAiApiKey);
+        Assert.Equal(new SoundSource.BuiltIn(), config.SentSound);
+    }
+
+    [Fact]
+    public void The_default_Dictation_Hotkey_is_Ctrl_Win_X()
+    {
+        Assert.Equal(new Hotkey(HotkeyModifiers.Control | HotkeyModifiers.Win, 0x58, "Ctrl+Win+X"), Hotkey.DictationDefault);
+        Assert.Equal("Ctrl+Win+X", Hotkey.DictationDefault.Text);
+    }
+
     private static List<string> Balloons(FakePlatform fake) =>
         fake.Calls.Where(call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal)).ToList();
 }

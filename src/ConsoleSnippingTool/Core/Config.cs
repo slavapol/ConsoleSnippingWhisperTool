@@ -34,6 +34,25 @@ public sealed record Config
         _ => throw new ArgumentOutOfRangeException(nameof(signal), signal, null),
     };
 
+    // Dictation. Parsing and ToJson for these are ticket 02; until then every file yields these defaults.
+
+    public Hotkey DictationHotkey { get; init; } = Hotkey.DictationDefault;
+
+    public int ListeningTimeoutSeconds { get; init; } = 120;
+
+    public string TranscriptionModel { get; init; } = "gpt-transcribe";
+
+    public string? Language { get; init; }
+
+    public string? Prompt { get; init; }
+
+    public bool Cleanup { get; init; }
+
+    public string CleanupModel { get; init; } = "gpt-6-luna";
+
+    /// null = read OPENAI_API_KEY from the environment.
+    public string? OpenAiApiKey { get; init; }
+
     // The relaxed encoder keeps "+" in the Hotkey literal (the default escapes it to +), so the file stays hand-editable.
     private static readonly JsonSerializerOptions Indented = new()
     {

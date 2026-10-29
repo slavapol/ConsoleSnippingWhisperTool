@@ -5,6 +5,8 @@ public readonly record struct Hotkey(HotkeyModifiers Modifiers, int VirtualKey, 
 {
     public static Hotkey Default => new(HotkeyModifiers.Control | HotkeyModifiers.Win, 0x5A, "Ctrl+Win+Z");
 
+    public static Hotkey DictationDefault => new(HotkeyModifiers.Control | HotkeyModifiers.Win, 0x58, "Ctrl+Win+X");
+
     private const int VkDigit0 = 0x30;
     private const int VkLetterA = 0x41;
     private const int VkF1 = 0x70;
