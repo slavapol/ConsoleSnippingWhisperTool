@@ -37,8 +37,8 @@ public sealed partial class Win32Platform : IPlatform
     {
         _window = new MessageWindow(() => AttachedCore);
         _mouseProc = MouseHookCallback;
-        _armedTimer = new System.Windows.Forms.Timer();
-        _armedTimer.Tick += OnArmedTimerTick;
+        _timer = new System.Windows.Forms.Timer();
+        _timer.Tick += OnTimerTick;
         _consoleCtrlHandler = OnConsoleCtrl;
         _showItem = new ToolStripMenuItem("Show", null, (_, _) => AttachedCore.OnShow());
         _hideItem = new ToolStripMenuItem("Hide", null, (_, _) => AttachedCore.OnHide());

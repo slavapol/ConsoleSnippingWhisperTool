@@ -18,11 +18,13 @@ public interface IPlatform
     void RegisterCancelKey();              // Esc, only while Armed
     void UnregisterCancelKey();
 
+    // Timer (renamed from StartArmedTimer/StopArmedTimer: one timer now serves Armed and Listening)
+    void StartTimer(TimeSpan duration);   // restarts if already running
+    void StopTimer();
+
     // Capture
     void InstallMouseHook();
     void RemoveMouseHook();
-    void StartArmedTimer(TimeSpan duration);   // restarts if already running
-    void StopArmedTimer();
     bool TryCaptureToClipboard(Region region); // copies the screen region and sets PNG + DIB; false on clipboard failure after retries
 
     // Sounds

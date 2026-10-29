@@ -9,7 +9,7 @@ public sealed partial class Win32Platform
 {
     // Kept in fields so the delegate handed to SetWindowsHookEx is never collected.
     private readonly NativeMethods.LowLevelMouseProc _mouseProc;
-    private readonly System.Windows.Forms.Timer _armedTimer;
+    private readonly System.Windows.Forms.Timer _timer;
     private nint _mouseHook;
 
     // A button-down and its matching button-up are swallowed as a pair. The core removes the hook while handling the
@@ -119,20 +119,20 @@ public sealed partial class Win32Platform
         return NativeMethods.CallNextHookEx(_mouseHook, nCode, wParam, ref lParam);
     }
 
-    // Armed timer (one shot, on the message loop)
+    // Timer (one shot, on the message loop; the Armed timeout and the Listening cap share it)
 
-    public void StartArmedTimer(TimeSpan duration)
+    public void StartTimer(TimeSpan duration)
     {
-        _armedTimer.Stop();
-        _armedTimer.Interval = (int)duration.TotalMilliseconds;
-        _armedTimer.Start();
+        _timer.Stop();
+        _timer.Interval = (int)duration.TotalMilliseconds;
+        _timer.Start();
     }
 
-    public void StopArmedTimer() => _armedTimer.Stop();
+    public void StopTimer() => _timer.Stop();
 
-    private void OnArmedTimerTick(object? sender, EventArgs e)
+    private void OnTimerTick(object? sender, EventArgs e)
     {
-        _armedTimer.Stop();
+        _timer.Stop();
         AttachedCore.OnTimerElapsed();
     }
 

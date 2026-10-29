@@ -11,7 +11,7 @@ namespace ConsoleSnippingTool.Tests;
 //   Single instance  TryAcquireInstance()  SignalPreviousInstance()  WaitForPreviousInstanceExit(5s)  TerminatePreviousInstance()
 //   Config           ReadConfigText()  WriteConfigText(<json verbatim>)
 //   Hotkeys          RegisterHotkey(Ctrl+Win+Z)  UnregisterHotkey()  RegisterCancelKey()  UnregisterCancelKey()
-//   Capture          InstallMouseHook()  RemoveMouseHook()  StartArmedTimer(30s)  StopArmedTimer()  TryCaptureToClipboard(5,10,6x11)
+//   Capture          InstallMouseHook()  RemoveMouseHook()  StartTimer(30s)  StopTimer()  TryCaptureToClipboard(5,10,6x11)
 //   Sounds           TrySetSound(Ready,BuiltIn)  TrySetSound(Done,None)  TrySetSound(Ready,File(click.wav))  PlaySound(Done)
 //   Console          ShowConsole()  HideConsole()  WriteConsoleLine(<line verbatim>)
 //   Tray             SetTrayTooltip(ConsoleSnippingTool (Ctrl+Win+Z))  SetTrayMenuState(showEnabled:true,hideEnabled:false)
@@ -104,9 +104,9 @@ public sealed class FakePlatform : IPlatform
 
     public void RemoveMouseHook() => Record("RemoveMouseHook()");
 
-    public void StartArmedTimer(TimeSpan duration) => Record($"StartArmedTimer({Seconds(duration)})");
+    public void StartTimer(TimeSpan duration) => Record($"StartTimer({Seconds(duration)})");
 
-    public void StopArmedTimer() => Record("StopArmedTimer()");
+    public void StopTimer() => Record("StopTimer()");
 
     public bool TryCaptureToClipboard(Region region)
     {

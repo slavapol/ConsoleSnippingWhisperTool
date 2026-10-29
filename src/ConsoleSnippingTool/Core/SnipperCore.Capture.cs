@@ -18,7 +18,7 @@ public sealed partial class SnipperCore
 
         // The hook last of the three: once it is in, the user's clicks are swallowed, so nothing that could fail is
         // left between it and Armed.
-        _platform.StartArmedTimer(ArmedTimeout);
+        _platform.StartTimer(ArmedTimeout);
         _platform.RegisterCancelKey();
         _platform.InstallMouseHook();
         _platform.PlaySound(Signal.Ready);
@@ -75,7 +75,7 @@ public sealed partial class SnipperCore
     private void TakeFirstCorner(int x, int y)
     {
         _firstCorner = new Corner(x, y);
-        _platform.StartArmedTimer(ArmedTimeout);
+        _platform.StartTimer(ArmedTimeout);
         _platform.PlaySound(Signal.Corner);
         _state = State.FirstCorner;
         Log($"Corner 1 at {x},{y}");
@@ -117,7 +117,7 @@ public sealed partial class SnipperCore
     {
         _platform.RemoveMouseHook();
         _platform.UnregisterCancelKey();
-        _platform.StopArmedTimer();
+        _platform.StopTimer();
         _state = State.Idle;
     }
 }

@@ -13,7 +13,7 @@ public class CaptureTests
 
         core.OnHotkey();
 
-        string[] expected = ["StartArmedTimer(30s)", "RegisterCancelKey()", "InstallMouseHook()", "PlaySound(Ready)"];
+        string[] expected = ["StartTimer(30s)", "RegisterCancelKey()", "InstallMouseHook()", "PlaySound(Ready)"];
         Assert.Equal(expected, fake.Calls);
     }
 
@@ -25,7 +25,7 @@ public class CaptureTests
         var swallowed = core.OnLeftButtonDown(10, 10);
 
         Assert.True(swallowed);
-        string[] expected = ["StartArmedTimer(30s)", "PlaySound(Corner)"];
+        string[] expected = ["StartTimer(30s)", "PlaySound(Corner)"];
         Assert.Equal(expected, fake.Calls);
     }
 
@@ -41,7 +41,7 @@ public class CaptureTests
         [
             "RemoveMouseHook()",
             "UnregisterCancelKey()",
-            "StopArmedTimer()",
+            "StopTimer()",
             "TryCaptureToClipboard(5,10,6x11)",
             "PlaySound(Done)",
         ];
@@ -90,7 +90,7 @@ public class CaptureTests
 
         Cancel(core, trigger);
 
-        string[] expected = ["RemoveMouseHook()", "UnregisterCancelKey()", "StopArmedTimer()"];
+        string[] expected = ["RemoveMouseHook()", "UnregisterCancelKey()", "StopTimer()"];
         Assert.Equal(expected, fake.Calls);
     }
 
@@ -105,7 +105,7 @@ public class CaptureTests
 
         Cancel(core, trigger);
 
-        string[] expected = ["RemoveMouseHook()", "UnregisterCancelKey()", "StopArmedTimer()"];
+        string[] expected = ["RemoveMouseHook()", "UnregisterCancelKey()", "StopTimer()"];
         Assert.Equal(expected, fake.Calls);
     }
 
@@ -166,7 +166,7 @@ public class CaptureTests
         [
             "RemoveMouseHook()",
             "UnregisterCancelKey()",
-            "StopArmedTimer()",
+            "StopTimer()",
             "UnregisterHotkey()",
             "RemoveTrayIcon()",
             "Exit()",
@@ -183,7 +183,7 @@ public class CaptureTests
 
         core.OnHotkey();
 
-        string[] expected = ["StartArmedTimer(30s)", "RegisterCancelKey()", "InstallMouseHook()", "PlaySound(Ready)"];
+        string[] expected = ["StartTimer(30s)", "RegisterCancelKey()", "InstallMouseHook()", "PlaySound(Ready)"];
         Assert.Equal(expected, fake.Calls);
     }
 
@@ -196,7 +196,7 @@ public class CaptureTests
 
         core.OnHotkey();
 
-        string[] expected = ["StartArmedTimer(30s)", "RegisterCancelKey()", "InstallMouseHook()", "PlaySound(Ready)"];
+        string[] expected = ["StartTimer(30s)", "RegisterCancelKey()", "InstallMouseHook()", "PlaySound(Ready)"];
         Assert.Equal(expected, fake.Calls);
     }
 

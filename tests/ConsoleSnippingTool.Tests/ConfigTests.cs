@@ -79,7 +79,7 @@ public class ConfigTests
 
         core.OnHotkey();
 
-        Assert.Contains($"StartArmedTimer({seconds}s)", fake.Calls);
+        Assert.Contains($"StartTimer({seconds}s)", fake.Calls);
         Assert.Empty(Balloons(fake));
     }
 
