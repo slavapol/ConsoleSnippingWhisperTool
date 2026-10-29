@@ -152,7 +152,7 @@ public class ConsoleTests
     }
 
     [Fact]
-    public void Exit_while_shown_hides_the_Console_before_releasing_the_Hotkey_and_the_tray_icon()
+    public void Exit_while_shown_hides_the_Console_before_releasing_the_Hotkeys_and_the_tray_icon()
     {
         var fake = new FakePlatform { Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
@@ -167,6 +167,7 @@ public class ConsoleTests
             "HideConsole()",
             "SetTrayMenuState(showEnabled:true,hideEnabled:false)",
             "UnregisterHotkey()",
+            "UnregisterDictationHotkey()",
             "RemoveTrayIcon()",
             "Exit()",
         ];

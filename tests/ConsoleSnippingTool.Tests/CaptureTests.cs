@@ -156,7 +156,7 @@ public class CaptureTests
     }
 
     [Fact]
-    public void Exit_after_the_first_Corner_cancels_before_releasing_the_Hotkey_and_the_tray_icon()
+    public void Exit_after_the_first_Corner_cancels_before_releasing_the_Hotkeys_and_the_tray_icon()
     {
         var (fake, core) = AtFirstCorner(10, 10);
 
@@ -168,6 +168,7 @@ public class CaptureTests
             "UnregisterCancelKey()",
             "StopTimer()",
             "UnregisterHotkey()",
+            "UnregisterDictationHotkey()",
             "RemoveTrayIcon()",
             "Exit()",
         ];

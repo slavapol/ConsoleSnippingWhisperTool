@@ -13,8 +13,35 @@ public class ConfigTests
         core.Start();
 
         Assert.Contains("RegisterHotkey(Ctrl+Shift+F5)", fake.Calls);
-        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (Ctrl+Shift+F5))", fake.Calls);
+        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Shift+F5, dictate Ctrl+Win+X))", fake.Calls);
         Assert.Empty(Balloons(fake));
+    }
+
+    [Fact]
+    public void A_configured_Dictation_Hotkey_is_registered_and_shown_in_the_tray_tooltip()
+    {
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(dictationHotkey: "ctrl+alt+d"), Environment = ApiKey.InEnvironment };
+        var core = new SnipperCore(fake);
+
+        core.Start();
+
+        Assert.Contains("RegisterDictationHotkey(Ctrl+Alt+D)", fake.Calls);
+        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Alt+D))", fake.Calls);
+        Assert.Empty(Balloons(fake));
+    }
+
+    [Fact]
+    public void Identical_Hotkeys_register_the_Capture_one_as_written_and_the_Dictation_default_with_one_balloon()
+    {
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey: "Ctrl+Alt+D", dictationHotkey: "Ctrl+Alt+D"), Environment = ApiKey.InEnvironment };
+        var core = new SnipperCore(fake);
+
+        core.Start();
+
+        Assert.Contains("RegisterHotkey(Ctrl+Alt+D)", fake.Calls);
+        Assert.Contains("RegisterDictationHotkey(Ctrl+Win+X)", fake.Calls);
+        var balloon = Assert.Single(Balloons(fake));
+        Assert.Equal("ShowBalloon(ConsoleSnippingTool: config.json: dictation.hotkey Ctrl+Alt+D is the same as hotkey; using default Ctrl+Win+X)", balloon);
     }
 
     [Fact]
@@ -42,7 +69,7 @@ public class ConfigTests
         core.Start();
 
         Assert.Contains("RegisterHotkey(Ctrl+Win+Z)", fake.Calls);
-        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (Ctrl+Win+Z))", fake.Calls);
+        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X))", fake.Calls);
         var balloon = Assert.Single(Balloons(fake));
         Assert.Equal($"ShowBalloon(ConsoleSnippingTool: config.json: hotkey \"{hotkey}\" is not a valid Hotkey; using default Ctrl+Win+Z)", balloon);
     }
@@ -98,7 +125,8 @@ public class ConfigTests
             "TrySetSound(Done,BuiltIn)",
             "TrySetSound(Sent,BuiltIn)",
             "RegisterHotkey(Ctrl+Win+Z)",
-            "SetTrayTooltip(ConsoleSnippingTool (Ctrl+Win+Z))",
+            "RegisterDictationHotkey(Ctrl+Win+X)",
+            "SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X))",
             "SetTrayMenuState(showEnabled:true,hideEnabled:false)",
         ];
         var balloon = Assert.Single(Balloons(fake));

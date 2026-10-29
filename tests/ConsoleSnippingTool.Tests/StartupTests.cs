@@ -27,7 +27,7 @@ public class StartupTests
     }
 
     [Fact]
-    public void Fresh_start_acquires_the_instance_writes_config_resolves_the_key_sets_sounds_registers_the_Hotkey_and_sets_up_the_tray_in_order()
+    public void Fresh_start_acquires_the_instance_writes_config_resolves_the_key_sets_sounds_registers_both_Hotkeys_and_sets_up_the_tray_in_order()
     {
         var fake = new FakePlatform { ConfigText = null, Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
@@ -45,7 +45,8 @@ public class StartupTests
             "TrySetSound(Done,BuiltIn)",
             "TrySetSound(Sent,BuiltIn)",
             "RegisterHotkey(Ctrl+Win+Z)",
-            "SetTrayTooltip(ConsoleSnippingTool (Ctrl+Win+Z))",
+            "RegisterDictationHotkey(Ctrl+Win+X)",
+            "SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X))",
             "SetTrayMenuState(showEnabled:true,hideEnabled:false)",
         ];
         Assert.Equal(expected, fake.Calls);
@@ -101,11 +102,31 @@ public class StartupTests
 
         var register = fake.Calls.IndexOf("RegisterHotkey(Ctrl+Win+Z)");
         var balloon = fake.Calls.FindIndex(call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal));
-        var tooltip = fake.Calls.IndexOf("SetTrayTooltip(ConsoleSnippingTool (Ctrl+Win+Z))");
+        var tooltip = fake.Calls.IndexOf("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X))");
         Assert.True(register >= 0, "Hotkey registration was attempted");
         Assert.True(balloon > register, "a balloon follows the failed registration");
         Assert.Contains("Ctrl+Win+Z", fake.Calls[balloon]);
         Assert.True(tooltip > balloon, "the tray is still set up afterwards");
+        Assert.Contains("SetTrayMenuState(showEnabled:true,hideEnabled:false)", fake.Calls);
+    }
+
+    [Fact]
+    public void A_Dictation_Hotkey_another_app_owns_is_reported_with_a_balloon_while_Capture_keeps_working_and_the_tray_is_still_set_up()
+    {
+        var fake = new FakePlatform { RegisterDictationHotkeyResult = false, Environment = ApiKey.InEnvironment };
+        var core = new SnipperCore(fake);
+
+        core.Start();
+
+        var balloon = Assert.Single(fake.Calls, call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal));
+        Assert.Equal("ShowBalloon(ConsoleSnippingTool: Hotkey Ctrl+Win+X is already taken by another app; edit config.json and relaunch)", balloon);
+        var capture = fake.Calls.IndexOf("RegisterHotkey(Ctrl+Win+Z)");
+        var dictation = fake.Calls.IndexOf("RegisterDictationHotkey(Ctrl+Win+X)");
+        var tooltip = fake.Calls.IndexOf("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X))");
+        Assert.True(capture >= 0, "the Capture Hotkey was registered");
+        Assert.True(dictation > capture, "the Dictation Hotkey is registered after the Capture one");
+        Assert.Equal(dictation + 1, fake.Calls.IndexOf(balloon));
+        Assert.True(tooltip > dictation, "the tray is still set up afterwards");
         Assert.Contains("SetTrayMenuState(showEnabled:true,hideEnabled:false)", fake.Calls);
     }
 
@@ -130,7 +151,7 @@ public class StartupTests
     }
 
     [Fact]
-    public void Exit_while_Idle_releases_the_Hotkey_removes_the_tray_icon_and_stops_in_that_order()
+    public void Exit_while_Idle_releases_both_Hotkeys_removes_the_tray_icon_and_stops_in_that_order()
     {
         var fake = new FakePlatform();
         var core = new SnipperCore(fake);
@@ -139,7 +160,7 @@ public class StartupTests
 
         core.OnExit();
 
-        string[] expected = ["UnregisterHotkey()", "RemoveTrayIcon()", "Exit()"];
+        string[] expected = ["UnregisterHotkey()", "UnregisterDictationHotkey()", "RemoveTrayIcon()", "Exit()"];
         Assert.Equal(expected, fake.Calls);
     }
 
@@ -153,7 +174,7 @@ public class StartupTests
 
         core.OnReplaceRequested();
 
-        string[] expected = ["UnregisterHotkey()", "RemoveTrayIcon()", "Exit()"];
+        string[] expected = ["UnregisterHotkey()", "UnregisterDictationHotkey()", "RemoveTrayIcon()", "Exit()"];
         Assert.Equal(expected, fake.Calls);
     }
 
