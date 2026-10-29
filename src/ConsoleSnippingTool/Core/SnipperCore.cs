@@ -40,6 +40,10 @@ public sealed partial class SnipperCore
     /// When the Release sent the audio; the wait the Inserted log line reports is measured from here.
     private DateTime _sentAt;
 
+    /// The Transcript as the Service returned it, kept while a Cleanup is in flight so a failed Cleanup can still
+    /// Insert what was said (spec: user story 20).
+    private string? _rawTranscript;
+
     /// True between Show and Hide.
     private bool ConsoleShown { get; set; }
 

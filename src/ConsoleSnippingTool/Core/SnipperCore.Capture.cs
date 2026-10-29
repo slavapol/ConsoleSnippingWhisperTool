@@ -7,13 +7,22 @@ public sealed partial class SnipperCore
 
     private TimeSpan ArmedTimeout => TimeSpan.FromSeconds(_config.ArmedTimeoutSeconds);
 
-    /// Arms from Idle; while Armed the Hotkey toggles the Capture off again instead of stacking.
+    /// Arms from Idle; while Armed the Hotkey toggles the Capture off again instead of stacking. During a Dictation it
+    /// is one log line, so the two jobs never interleave (spec: user story 13).
     public void OnHotkey()
     {
-        if (_state != State.Idle)
+        switch (_state)
         {
-            Cancel(CancelReason.Hotkey);
-            return;
+            case State.Armed:
+            case State.FirstCorner:
+                Cancel(CancelReason.Hotkey);
+                return;
+            case State.Listening:
+                Log("Capture hotkey ignored while listening");
+                return;
+            case State.Transcribing:
+                Log("Capture hotkey ignored while transcribing");
+                return;
         }
 
         // The hook last of the three: once it is in, the user's clicks are swallowed, so nothing that could fail is
@@ -26,12 +35,18 @@ public sealed partial class SnipperCore
         Log("Armed");
     }
 
-    /// Esc; registered only while Armed, so an Idle call is a stray one.
+    /// Esc; registered only while Armed or Listening, so any other call is a stray one.
     public void OnCancelKey()
     {
-        if (_state != State.Idle)
+        switch (_state)
         {
-            Cancel(CancelReason.Escape);
+            case State.Armed:
+            case State.FirstCorner:
+                Cancel(CancelReason.Escape);
+                break;
+            case State.Listening:
+                Discard(DiscardReason.Escape);
+                break;
         }
     }
 
@@ -51,10 +66,11 @@ public sealed partial class SnipperCore
         }
     }
 
-    /// Returns true when the click cancelled an Armed Capture (the adapter then swallows it and the matching up).
+    /// Returns true when the click cancelled an Armed Capture (the adapter then swallows it and the matching up). The
+    /// mouse keeps working during a Dictation (spec: user story 7), so there a click is nobody's business.
     public bool OnRightButtonDown()
     {
-        if (_state == State.Idle)
+        if (_state is not (State.Armed or State.FirstCorner))
         {
             return false;
         }
@@ -63,12 +79,18 @@ public sealed partial class SnipperCore
         return true;
     }
 
-    /// The Armed timer; stopped on leaving Armed, so an Idle call is a late one.
+    /// The one timer: the Armed timeout or the Listening cap, stopped on leaving either, so an Idle call is a late one.
     public void OnTimerElapsed()
     {
-        if (_state != State.Idle)
+        switch (_state)
         {
-            Cancel(CancelReason.Timeout);
+            case State.Armed:
+            case State.FirstCorner:
+                Cancel(CancelReason.Timeout);
+                break;
+            case State.Listening:
+                Release(byCap: true);
+                break;
         }
     }
 

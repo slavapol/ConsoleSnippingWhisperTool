@@ -119,11 +119,22 @@ public sealed partial class SnipperCore
     /// A newer Instance asked this one to exit.
     public void OnReplaceRequested() => OnExit();
 
+    /// Whatever job is under way ends first, so a replaced or closed Instance never leaves the microphone open or
+    /// pastes after it is gone (spec: user stories 40 and 41).
     public void OnExit()
     {
-        if (_state != State.Idle)
+        switch (_state)
         {
-            Cancel(CancelReason.Exit);
+            case State.Armed:
+            case State.FirstCorner:
+                Cancel(CancelReason.Exit);
+                break;
+            case State.Listening:
+                Discard(DiscardReason.Exit);
+                break;
+            case State.Transcribing:
+                AbandonTranscription();
+                break;
         }
 
         // No-op while the Console is hidden; lets the adapter detach its console handler before the process goes.
