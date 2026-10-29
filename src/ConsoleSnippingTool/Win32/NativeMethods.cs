@@ -2,8 +2,9 @@ using System.Runtime.InteropServices;
 
 namespace ConsoleSnippingTool.Win32;
 
-/// Every P/Invoke the adapter uses, in one place. Names and signatures mirror the Win32 declarations.
-internal static class NativeMethods
+/// Every P/Invoke the adapter uses. Names and signatures mirror the Win32 declarations. Partial so that each later
+/// area adds its own file (Keyboard, Audio, Input) without editing this shared one.
+internal static partial class NativeMethods
 {
     // Window messages
     public const int WM_HOTKEY = 0x0312;

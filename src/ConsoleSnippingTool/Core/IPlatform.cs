@@ -15,8 +15,10 @@ public interface IPlatform
     // Hotkeys
     bool RegisterHotkey(Hotkey hotkey);    // false when another app owns it
     void UnregisterHotkey();
-    void RegisterCancelKey();              // Esc, only while Armed
+    void RegisterCancelKey();              // Esc, only while Armed or Listening
     void UnregisterCancelKey();
+    bool RegisterDictationHotkey(Hotkey hotkey); // false when another app owns it
+    void UnregisterDictationHotkey();
 
     // Timer (renamed from StartArmedTimer/StopArmedTimer: one timer now serves Armed and Listening)
     void StartTimer(TimeSpan duration);   // restarts if already running
@@ -26,6 +28,17 @@ public interface IPlatform
     void InstallMouseHook();
     void RemoveMouseHook();
     bool TryCaptureToClipboard(Region region); // copies the screen region and sets PNG + DIB; false on clipboard failure after retries
+
+    // Dictation
+    void InstallKeyboardHook(Hotkey chord);   // posts OnDictationKeyUp once when any key of the chord goes up; swallows nothing
+    void RemoveKeyboardHook();
+    bool TryOpenMicrophone();                 // default communication capture device; false when there is none
+    AudioClip CloseMicrophone();              // stops capturing and returns everything recorded since TryOpenMicrophone
+    void WarmUpService(string apiKey);        // fire-and-forget connection warm-up; result ignored
+    void BeginTranscription(int sequence, AudioClip clip, TranscriptionRequest request); // later posts OnTranscript or OnTranscriptionFailed with the same sequence
+    void BeginCleanup(int sequence, string transcript, CleanupRequest request);          // later posts OnCleanedTranscript or OnCleanupFailed
+    bool TryInsertText(string text, out string reason);   // paste with restore (ADR-0003); reason is set when false
+    string? ReadEnvironmentVariable(string name);
 
     // Sounds
     bool TrySetSound(Signal signal, SoundSource source); // false when a File could not be loaded

@@ -14,8 +14,9 @@ namespace ConsoleSnippingTool.Win32;
 ///     core.Start();
 ///     Application.Run();
 ///
-/// Split over several files by concern: this one (instance, config file, exit), Capture (hotkeys, mouse hook, Armed
-/// timer, screen to clipboard), Sounds, Console and Tray.
+/// Split over several files by concern: this one (instance, config file, environment, exit), Capture (Capture Hotkey,
+/// mouse hook, the one-shot timer both jobs share, screen to clipboard), Keyboard (Dictation Hotkey, keyboard hook),
+/// Microphone, Service (transport to the Service), Insert (paste with restore), Sounds, Console and Tray.
 public sealed partial class Win32Platform : IPlatform
 {
     private const string InstanceMutexName = @"Local\ConsoleSnippingTool.Instance";
@@ -173,6 +174,10 @@ public sealed partial class Win32Platform : IPlatform
     }
 
     public void WriteConfigText(string json) => File.WriteAllText(Path.Combine(ExeFolder, Config.FileName), json);
+
+    // Environment
+
+    public string? ReadEnvironmentVariable(string name) => Environment.GetEnvironmentVariable(name);
 
     // Process
 
