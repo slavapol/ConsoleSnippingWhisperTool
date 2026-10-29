@@ -23,7 +23,7 @@ public sealed partial class Win32Platform
     private const string ClipboardLockedReason = "clipboard locked by another app";
 
     // Held physically, any of these turns the synthesised Ctrl+V into another shortcut in the target app.
-    private static readonly int[] ModifierKeys =
+    private static readonly uint[] ModifierKeys =
     {
         NativeMethods.VK_LCONTROL, NativeMethods.VK_RCONTROL,
         NativeMethods.VK_LMENU, NativeMethods.VK_RMENU,
@@ -168,7 +168,7 @@ public sealed partial class Win32Platform
     {
         foreach (var key in ModifierKeys)
         {
-            if (NativeMethods.GetAsyncKeyState(key) < 0)
+            if (NativeMethods.GetAsyncKeyState((int)key) < 0)
             {
                 return true;
             }
@@ -192,14 +192,14 @@ public sealed partial class Win32Platform
         return inserted == inputs.Length;
     }
 
-    private static NativeMethods.INPUT KeyEvent(ushort virtualKey, bool down) => new()
+    private static NativeMethods.INPUT KeyEvent(uint virtualKey, bool down) => new()
     {
         type = NativeMethods.INPUT_KEYBOARD,
         u = new NativeMethods.INPUTUNION
         {
             ki = new NativeMethods.KEYBDINPUT
             {
-                wVk = virtualKey,
+                wVk = (ushort)virtualKey,
                 dwFlags = down ? 0 : NativeMethods.KEYEVENTF_KEYUP,
             },
         },

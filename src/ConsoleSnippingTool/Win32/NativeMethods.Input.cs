@@ -6,19 +6,10 @@ namespace ConsoleSnippingTool.Win32;
 /// the clipboard sequence number. Layouts and values checked against winuser.h on Microsoft Learn, 2026-10-29.
 internal static partial class NativeMethods
 {
-    // Virtual keys for SendInput (WORD wVk). winuser.h has no define for the letter keys: 'V' is its ASCII code.
-    public const ushort VK_CONTROL = 0x11;
-    public const ushort VK_V = 0x56;
-
-    // Virtual keys for GetAsyncKeyState (int vKey): the left and right instances of the four modifiers.
-    public const int VK_LWIN = 0x5B;
-    public const int VK_RWIN = 0x5C;
-    public const int VK_LSHIFT = 0xA0;
-    public const int VK_RSHIFT = 0xA1;
-    public const int VK_LCONTROL = 0xA2;
-    public const int VK_RCONTROL = 0xA3;
-    public const int VK_LMENU = 0xA4;
-    public const int VK_RMENU = 0xA5;
+    // Virtual key of the paste letter. winuser.h has no define for the letter keys: 'V' is its ASCII code. VK_CONTROL
+    // and the left and right modifier codes the Insert polls are declared with the keyboard hook's, in
+    // NativeMethods.Keyboard.cs.
+    public const uint VK_V = 0x56;
 
     // INPUT.type
     public const uint INPUT_KEYBOARD = 1;
