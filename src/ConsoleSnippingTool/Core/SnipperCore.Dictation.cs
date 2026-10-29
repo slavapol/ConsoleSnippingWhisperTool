@@ -21,7 +21,8 @@ public sealed partial class SnipperCore
             case State.Transcribing:
                 Log("Dictation hotkey ignored while transcribing");
                 break;
-            default:
+            case State.Armed:
+            case State.FirstCorner:
                 Log("Dictation hotkey ignored while armed");
                 break;
         }

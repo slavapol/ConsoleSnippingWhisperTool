@@ -14,6 +14,46 @@ public class DictationTests
 
     private static TimeSpan Ms(int milliseconds) => TimeSpan.FromMilliseconds(milliseconds);
 
+    // The whole story
+
+    [Fact]
+    public void A_Dictation_is_Ready_on_the_press_Sent_on_the_Release_and_Done_once_the_Transcript_is_in_the_app_with_one_log_line_per_event()
+    {
+        var (fake, core) = Started();
+
+        core.OnDictationHotkey();
+        Advance(TimeSpan.FromSeconds(3));
+        core.OnDictationKeyUp();
+        Advance(Ms(900));
+        core.OnTranscript(1, "hello world");
+
+        string[] expected =
+        [
+            "TryOpenMicrophone()",
+            "StartTimer(120s)",
+            "RegisterCancelKey()",
+            "InstallKeyboardHook(Ctrl+Win+X)",
+            "WarmUpService()",
+            "PlaySound(Ready)",
+            "RemoveKeyboardHook()",
+            "UnregisterCancelKey()",
+            "StopTimer()",
+            "CloseMicrophone()",
+            "PlaySound(Sent)",
+            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,language:null,prompt:null)",
+            "TryInsertText(hello world)",
+            "PlaySound(Done)",
+        ];
+        Assert.Equal(expected, fake.Calls);
+        string[] expectedLog =
+        [
+            "09:05:07 Listening",
+            "09:05:10 Sent 3.0 s of audio",
+            "09:05:10 Inserted 11 chars in 0.9 s: hello world",
+        ];
+        Assert.Equal(expectedLog, Logged(fake, core));
+    }
+
     // Listening
 
     [Fact]
@@ -230,6 +270,16 @@ public class DictationTests
         Assert.False(core.OnRightButtonDown());
         Assert.Empty(fake.Calls);
         Assert.Equal(["09:05:07 Listening"], Logged(fake, core));
+    }
+
+    [Fact]
+    public void A_key_up_while_Idle_does_nothing()
+    {
+        var (fake, core) = Started();
+
+        core.OnDictationKeyUp();
+
+        Assert.Empty(fake.Calls);
     }
 
     [Fact]
