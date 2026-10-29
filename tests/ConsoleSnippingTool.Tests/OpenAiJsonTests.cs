@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using ConsoleSnippingTool.Win32.OpenAi;
 
@@ -78,5 +79,50 @@ public class OpenAiJsonTests
             """;
 
         Assert.Equal("", OpenAiJson.ParseCleanupOutput(response));
+    }
+
+    [Fact]
+    public async Task The_transcription_form_carries_the_model_the_json_format_the_language_the_prompt_and_the_WAV_as_dictation_wav()
+    {
+        var wav = "RIFF....WAVE"u8.ToArray();
+        using var form = OpenAiJson.TranscriptionForm(wav, "gpt-transcribe", language: "en", prompt: "ConsoleSnippingTool, WASAPI");
+
+        var parts = await PartsOf(form);
+        Assert.Equal("gpt-transcribe", parts["model"].Text);
+        Assert.Equal("json", parts["response_format"].Text);
+        Assert.Equal("en", parts["languages[]"].Text);
+        Assert.Equal("ConsoleSnippingTool, WASAPI", parts["prompt"].Text);
+        Assert.Equal(wav, parts["file"].Bytes);
+        Assert.Equal("audio/wav", parts["file"].MediaType);
+        // The header as curl writes it, quotes included; .NET's default leaves tokens unquoted and adds filename*.
+        Assert.Equal("form-data; name=\"file\"; filename=\"dictation.wav\"", parts["file"].Disposition);
+    }
+
+    [Fact]
+    public async Task The_transcription_form_leaves_out_the_language_and_the_prompt_when_they_are_not_set()
+    {
+        using var form = OpenAiJson.TranscriptionForm("RIFF....WAVE"u8.ToArray(), "gpt-transcribe", language: null, prompt: null);
+
+        var parts = await PartsOf(form);
+        Assert.Equal(["file", "model", "response_format"], parts.Keys.Order());
+    }
+
+    private sealed record Part(string Disposition, string? MediaType, byte[] Bytes)
+    {
+        public string Text => Encoding.UTF8.GetString(Bytes);
+    }
+
+    // The parts by their form field name, read back from the content the HttpClient would send.
+    private static async Task<Dictionary<string, Part>> PartsOf(MultipartFormDataContent form)
+    {
+        var parts = new Dictionary<string, Part>();
+        foreach (var content in form)
+        {
+            var disposition = content.Headers.ContentDisposition!;
+            parts[disposition.Name!.Trim('"')] =
+                new Part(disposition.ToString(), content.Headers.ContentType?.MediaType, await content.ReadAsByteArrayAsync());
+        }
+
+        return parts;
     }
 }

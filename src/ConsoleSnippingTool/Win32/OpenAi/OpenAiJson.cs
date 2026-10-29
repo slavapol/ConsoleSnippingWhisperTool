@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace ConsoleSnippingTool.Win32.OpenAi;
@@ -7,6 +8,46 @@ namespace ConsoleSnippingTool.Win32.OpenAi;
 /// (speech-to-text guide; Responses API create and object references).
 public static class OpenAiJson
 {
+    /// The multipart form of the transcription request: the WAV as the file "dictation.wav", the model, response_format
+    /// json so the Transcript comes back as the "text" field, the language as languages[] (the gpt-transcribe parameter;
+    /// the singular "language" belongs to the models being shut down) and the prompt. Takes the fields, not the
+    /// TranscriptionRequest, so the key cannot end up in a form.
+    public static MultipartFormDataContent TranscriptionForm(byte[] wav, string model, string? language, string? prompt)
+    {
+        var file = new ByteArrayContent(wav);
+        file.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
+        var form = new MultipartFormDataContent
+        {
+            Part(file, "file", "dictation.wav"),
+            Part(new StringContent(model), "model"),
+            Part(new StringContent("json"), "response_format"),
+        };
+        if (language is not null)
+        {
+            form.Add(Part(new StringContent(language), "languages[]"));
+        }
+
+        if (prompt is not null)
+        {
+            form.Add(Part(new StringContent(prompt), "prompt"));
+        }
+
+        return form;
+    }
+
+    // A form part with its Content-Disposition written as curl writes it: name and filename quoted, no filename*.
+    // MultipartFormDataContent.Add(content, name) would leave token names unquoted and add filename*, and not every
+    // multipart parser takes that.
+    private static HttpContent Part(HttpContent content, string name, string? fileName = null)
+    {
+        content.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+        {
+            Name = $"\"{name}\"",
+            FileName = fileName is null ? null : $"\"{fileName}\"",
+        };
+        return content;
+    }
+
     /// The Transcript in a transcription response: its "text" field. Throws FormatException, whose message is the
     /// failure reason, when the field is not there.
     public static string ParseTranscript(string json)
