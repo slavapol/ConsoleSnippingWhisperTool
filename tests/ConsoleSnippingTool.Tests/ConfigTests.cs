@@ -177,6 +177,12 @@ public class ConfigTests
     }
 
     [Fact]
+    public void A_default_Config_serialises_to_the_default_file_the_spec_shows()
+    {
+        Assert.Equal(Normalise(ConfigJson.With()), Normalise(new Config().ToJson()));
+    }
+
+    [Fact]
     public void The_default_file_loads_back_as_the_default_config_without_problems()
     {
         var (config, problems) = Config.Load(new Config().ToJson());
@@ -184,6 +190,8 @@ public class ConfigTests
         Assert.Empty(problems);
         Assert.Equal(new Config(), config);
     }
+
+    private static string Normalise(string text) => text.ReplaceLineEndings("\n").TrimEnd();
 
     [Fact]
     public void No_file_means_defaults_and_nothing_to_report()

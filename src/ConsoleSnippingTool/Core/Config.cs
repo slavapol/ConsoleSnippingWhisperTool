@@ -61,6 +61,7 @@ public sealed record Config
     };
 
     /// The config.json text for this config, in the shape the spec's Configuration section shows (camelCase, indented).
+    /// The core only ever writes a default Config, so the file it creates never carries a key (spec: user story 22).
     public string ToJson() => JsonSerializer.Serialize(new
     {
         hotkey = Hotkey.Text,
@@ -69,7 +70,22 @@ public sealed record Config
         {
             ready = SoundValue(ReadySound),
             corner = SoundValue(CornerSound),
+            sent = SoundValue(SentSound),
             done = SoundValue(DoneSound),
+        },
+        openAi = new
+        {
+            apiKey = OpenAiApiKey,
+        },
+        dictation = new
+        {
+            hotkey = DictationHotkey.Text,
+            listeningTimeoutSeconds = ListeningTimeoutSeconds,
+            model = TranscriptionModel,
+            language = Language,
+            prompt = Prompt,
+            cleanup = Cleanup,
+            cleanupModel = CleanupModel,
         },
     }, Indented);
 
