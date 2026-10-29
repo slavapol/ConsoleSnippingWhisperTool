@@ -2,13 +2,13 @@ namespace ConsoleSnippingTool.Tests;
 
 /// A complete config.json in the shape the spec's Configuration section shows (and Config.ToJson writes), so a test
 /// states only the field it is about. With no arguments it is the default file. The two Hotkeys are plain text (the
-/// template quotes them); every other sound, openAi and dictation value is a JSON literal, quotes included (null,
-/// "none", "x.wav", 120, "yes", false), so a test can state a wrong type as easily as a right value.
+/// template quotes them); every other value is a JSON literal, quotes included (null, "none", "x.wav", 120, "yes",
+/// false), so a test can state a wrong type as easily as a right value.
 internal static class ConfigJson
 {
     public static string With(
         string hotkey = "Ctrl+Win+Z",
-        int armedTimeoutSeconds = 30,
+        string armedTimeoutSeconds = "30",
         string ready = "null",
         string corner = "null",
         string sent = "null",
