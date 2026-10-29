@@ -4,12 +4,13 @@ namespace ConsoleSnippingTool.Tests;
 
 public class ConsoleTests
 {
-    /// The header Show prints before the ring, for the default Hotkey.
+    /// The header Show prints before the ring, for the default Hotkeys.
     private static readonly string[] Header =
     [
         "WriteConsoleLine(ConsoleSnippingTool)",
         "WriteConsoleLine(Press Ctrl+Win+Z to capture)",
-        "WriteConsoleLine(Esc or right-click cancels)",
+        "WriteConsoleLine(Hold Ctrl+Win+X to dictate)",
+        "WriteConsoleLine(Esc or right-click cancels a capture; Esc discards a dictation)",
         "WriteConsoleLine()",
     ];
 
@@ -40,6 +41,31 @@ public class ConsoleTests
             "SetTrayMenuState(showEnabled:false,hideEnabled:true)",
         ];
         Assert.Equal(expected, fake.Calls);
+    }
+
+    [Fact]
+    public void The_header_names_the_configured_Hotkeys()
+    {
+        var fake = new FakePlatform
+        {
+            ConfigText = ConfigJson.With(hotkey: "Ctrl+Shift+F5", dictationHotkey: "Ctrl+Alt+D"),
+            Environment = ApiKey.InEnvironment,
+        };
+        var core = new SnipperCore(fake);
+        core.Start();
+        fake.Calls.Clear();
+
+        core.OnShow();
+
+        string[] expected =
+        [
+            "WriteConsoleLine(ConsoleSnippingTool)",
+            "WriteConsoleLine(Press Ctrl+Shift+F5 to capture)",
+            "WriteConsoleLine(Hold Ctrl+Alt+D to dictate)",
+            "WriteConsoleLine(Esc or right-click cancels a capture; Esc discards a dictation)",
+            "WriteConsoleLine()",
+        ];
+        Assert.Equal(expected, fake.Calls.Where(IsConsoleLine));
     }
 
     [Fact]
