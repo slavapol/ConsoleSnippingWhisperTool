@@ -23,11 +23,14 @@ public sealed record Config
 
     public SoundSource DoneSound { get; init; } = new SoundSource.BuiltIn();
 
+    public SoundSource SentSound { get; init; } = new SoundSource.BuiltIn();
+
     public SoundSource SoundFor(Signal signal) => signal switch
     {
         Signal.Ready => ReadySound,
         Signal.Corner => CornerSound,
         Signal.Done => DoneSound,
+        Signal.Sent => SentSound,
         _ => throw new ArgumentOutOfRangeException(nameof(signal), signal, null),
     };
 

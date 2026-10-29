@@ -42,6 +42,7 @@ public class StartupTests
             "TrySetSound(Ready,BuiltIn)",
             "TrySetSound(Corner,BuiltIn)",
             "TrySetSound(Done,BuiltIn)",
+            "TrySetSound(Sent,BuiltIn)",
             "RegisterHotkey(Ctrl+Win+Z)",
             "SetTrayTooltip(ConsoleSnippingTool (Ctrl+Win+Z))",
             "SetTrayMenuState(showEnabled:true,hideEnabled:false)",
@@ -121,6 +122,7 @@ public class StartupTests
             "TrySetSound(Corner,BuiltIn)",
             "TrySetSound(Done,BuiltIn)",
             "TrySetSound(Done,BuiltIn)",
+            "TrySetSound(Sent,BuiltIn)",
         ];
         Assert.Equal(expectedSounds, fake.Calls.Where(call => call.StartsWith("TrySetSound(", StringComparison.Ordinal)));
         Assert.Contains("RegisterHotkey(Ctrl+Win+Z)", fake.Calls);

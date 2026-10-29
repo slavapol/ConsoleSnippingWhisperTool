@@ -89,6 +89,7 @@ public class SoundTests
             "TrySetSound(Corner,BuiltIn)",
             "TrySetSound(Done,File(bad.wav))",
             "TrySetSound(Done,BuiltIn)",
+            "TrySetSound(Sent,BuiltIn)",
         ];
         Assert.Equal(expected, SoundCalls(fake));
     }
@@ -125,6 +126,7 @@ public class SoundTests
             "TrySetSound(Ready,File(click.wav))",
             "TrySetSound(Corner,BuiltIn)",
             "TrySetSound(Done,BuiltIn)",
+            "TrySetSound(Sent,BuiltIn)",
         ];
         Assert.Equal(expected, SoundCalls(fake));
         Assert.DoesNotContain(fake.Calls, call => call.Contains("Sound for", StringComparison.Ordinal));
@@ -143,6 +145,7 @@ public class SoundTests
             "TrySetSound(Ready,BuiltIn)",
             "TrySetSound(Corner,None)",
             "TrySetSound(Done,BuiltIn)",
+            "TrySetSound(Sent,BuiltIn)",
         ];
         Assert.Equal(expected, SoundCalls(fake));
     }

@@ -96,6 +96,7 @@ public class ConfigTests
             "TrySetSound(Ready,BuiltIn)",
             "TrySetSound(Corner,BuiltIn)",
             "TrySetSound(Done,BuiltIn)",
+            "TrySetSound(Sent,BuiltIn)",
             "RegisterHotkey(Ctrl+Win+Z)",
             "SetTrayTooltip(ConsoleSnippingTool (Ctrl+Win+Z))",
             "SetTrayMenuState(showEnabled:true,hideEnabled:false)",
@@ -191,6 +192,17 @@ public class ConfigTests
 
         Assert.Empty(problems);
         Assert.Equal(new Config(), config);
+    }
+
+    [Fact]
+    public void The_Sent_signal_plays_the_SentSound_and_leaves_the_other_signals_alone()
+    {
+        var config = new Config { SentSound = new SoundSource.File("sent.wav") };
+
+        Assert.Equal(new SoundSource.File("sent.wav"), config.SoundFor(Signal.Sent));
+        Assert.Equal(new SoundSource.BuiltIn(), config.SoundFor(Signal.Ready));
+        Assert.Equal(new SoundSource.BuiltIn(), config.SoundFor(Signal.Corner));
+        Assert.Equal(new SoundSource.BuiltIn(), config.SoundFor(Signal.Done));
     }
 
     // Hotkey grammar details the Platform seam cannot observe (the fake records only the Text).
