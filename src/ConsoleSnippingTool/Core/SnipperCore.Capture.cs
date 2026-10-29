@@ -35,7 +35,8 @@ public sealed partial class SnipperCore
         Log("Armed");
     }
 
-    /// Esc; registered only while Armed or Listening, so any other call is a stray one.
+    /// Esc: the cancel key registered while Armed, or the key the keyboard hook swallows while Listening; any other call
+    /// is a stray one.
     public void OnCancelKey()
     {
         switch (_state)

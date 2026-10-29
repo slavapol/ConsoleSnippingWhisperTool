@@ -6,8 +6,10 @@ namespace ConsoleSnippingTool.Win32;
 /// a key-up against, and the two hook entry points overloaded for the keyboard delegate and struct.
 internal static partial class NativeMethods
 {
-    // Window messages
+    // Window messages (the SYS variants arrive while Alt is down)
+    public const int WM_KEYDOWN = 0x0100;
     public const int WM_KEYUP = 0x0101;
+    public const int WM_SYSKEYDOWN = 0x0104;
     public const int WM_SYSKEYUP = 0x0105;
 
     // SetWindowsHookEx

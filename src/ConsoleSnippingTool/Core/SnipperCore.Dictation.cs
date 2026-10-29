@@ -47,7 +47,6 @@ public sealed partial class SnipperCore
         }
 
         _platform.StartTimer(ListeningTimeout);
-        _platform.RegisterCancelKey();
         _platform.InstallKeyboardHook(_config.DictationHotkey);
         _platform.WarmUpService(apiKey);
         _platform.PlaySound(Signal.Ready);
@@ -109,12 +108,11 @@ public sealed partial class SnipperCore
     /// by the time a request is built.
     private string ApiKey => _apiKey ?? throw new InvalidOperationException("Dictation without an API key");
 
-    /// Stops reading the user's speech: hook off, Esc released, cap stopped, microphone closed. The tail of every
+    /// Stops reading the user's speech: hook off (and with it Esc), cap stopped, microphone closed. The tail of every
     /// Release and Discard; the clip is what the microphone heard.
     private AudioClip StopListening()
     {
         _platform.RemoveKeyboardHook();
-        _platform.UnregisterCancelKey();
         _platform.StopTimer();
         var clip = _platform.CloseMicrophone();
         _state = State.Idle;

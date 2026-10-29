@@ -4,8 +4,8 @@ using ConsoleSnippingTool.Core;
 namespace ConsoleSnippingTool.Win32;
 
 /// The hidden message-only window on the STA thread. Hotkeys are registered against it, so it receives WM_HOTKEY;
-/// the instance watch (pool thread), the mouse hook (inside GetMessage) and the console control handler (console
-/// host thread) post the WM_APP messages to it so that the core runs on the message loop. Each message maps to one
+/// the instance watch (pool thread), the mouse and keyboard hooks (inside GetMessage) and the console control handler
+/// (console host thread) post the WM_APP messages to it so that the core runs on the message loop. Each message maps to one
 /// core event, except WM_RUN_POSTED, which runs whatever actions other threads handed to <see cref="Post"/>.
 internal sealed class MessageWindow : NativeWindow
 {
@@ -18,6 +18,7 @@ internal sealed class MessageWindow : NativeWindow
     public const int WM_EXIT_REQUESTED = NativeMethods.WM_APP + 4;
     public const int WM_DICTATION_KEY_UP = NativeMethods.WM_APP + 5;
     public const int WM_RUN_POSTED = NativeMethods.WM_APP + 6;
+    public const int WM_DICTATION_CANCEL = NativeMethods.WM_APP + 7;  // Esc swallowed by the keyboard hook while Listening
 
     // Resolved per message: the core is attached to the platform after this window exists.
     private readonly Func<SnipperCore> _core;
@@ -66,6 +67,9 @@ internal sealed class MessageWindow : NativeWindow
                 break;
             case WM_DICTATION_KEY_UP:
                 _core().OnDictationKeyUp();
+                break;
+            case WM_DICTATION_CANCEL:
+                _core().OnCancelKey();
                 break;
             case WM_RUN_POSTED:
                 RunPosted();

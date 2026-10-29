@@ -31,12 +31,10 @@ public class DictationTests
         [
             "TryOpenMicrophone()",
             "StartTimer(120s)",
-            "RegisterCancelKey()",
             "InstallKeyboardHook(Ctrl+Win+X)",
             "WarmUpService()",
             "PlaySound(Ready)",
             "RemoveKeyboardHook()",
-            "UnregisterCancelKey()",
             "StopTimer()",
             "CloseMicrophone()",
             "PlaySound(Sent)",
@@ -57,7 +55,7 @@ public class DictationTests
     // Listening
 
     [Fact]
-    public void Dictation_Hotkey_while_Idle_opens_the_microphone_starts_the_cap_registers_Esc_installs_the_hook_warms_up_the_Service_and_plays_Ready_in_that_order()
+    public void Dictation_Hotkey_while_Idle_opens_the_microphone_starts_the_cap_installs_the_hook_warms_up_the_Service_and_plays_Ready_in_that_order()
     {
         var (fake, core) = Started();
 
@@ -67,7 +65,6 @@ public class DictationTests
         [
             "TryOpenMicrophone()",
             "StartTimer(120s)",
-            "RegisterCancelKey()",
             "InstallKeyboardHook(Ctrl+Win+X)",
             "WarmUpService()",
             "PlaySound(Ready)",
@@ -116,7 +113,7 @@ public class DictationTests
     // Release
 
     [Fact]
-    public void Release_after_a_held_chord_removes_the_hook_releases_Esc_stops_the_cap_closes_the_microphone_plays_Sent_and_sends_the_clip_in_that_order()
+    public void Release_after_a_held_chord_removes_the_hook_stops_the_cap_closes_the_microphone_plays_Sent_and_sends_the_clip_in_that_order()
     {
         var (fake, core) = Listening();
         Advance(TimeSpan.FromSeconds(3));
@@ -126,7 +123,6 @@ public class DictationTests
         string[] expected =
         [
             "RemoveKeyboardHook()",
-            "UnregisterCancelKey()",
             "StopTimer()",
             "CloseMicrophone()",
             "PlaySound(Sent)",
@@ -144,7 +140,7 @@ public class DictationTests
 
         core.OnDictationKeyUp();
 
-        string[] expected = ["RemoveKeyboardHook()", "UnregisterCancelKey()", "StopTimer()", "CloseMicrophone()"];
+        string[] expected = ["RemoveKeyboardHook()", "StopTimer()", "CloseMicrophone()"];
         Assert.Equal(expected, fake.Calls);
         Assert.Equal(["09:05:07 Listening", "09:05:07 Tap ignored"], Logged(fake, core));
     }
@@ -179,7 +175,6 @@ public class DictationTests
         string[] expected =
         [
             "RemoveKeyboardHook()",
-            "UnregisterCancelKey()",
             "StopTimer()",
             "CloseMicrophone()",
             "PlaySound(Sent)",
@@ -201,7 +196,6 @@ public class DictationTests
         string[] expected =
         [
             "RemoveKeyboardHook()",
-            "UnregisterCancelKey()",
             "StopTimer()",
             "CloseMicrophone()",
             "PlaySound(Sent)",
@@ -240,7 +234,7 @@ public class DictationTests
 
         core.OnCancelKey();
 
-        string[] expected = ["RemoveKeyboardHook()", "UnregisterCancelKey()", "StopTimer()", "CloseMicrophone()"];
+        string[] expected = ["RemoveKeyboardHook()", "StopTimer()", "CloseMicrophone()"];
         Assert.Equal(expected, fake.Calls);
         fake.Calls.Clear();
         core.OnDictationHotkey();
@@ -536,7 +530,6 @@ public class DictationTests
         string[] expected =
         [
             "RemoveKeyboardHook()",
-            "UnregisterCancelKey()",
             "StopTimer()",
             "CloseMicrophone()",
             "UnregisterHotkey()",
