@@ -7,7 +7,7 @@ public class ConfigTests
     [Fact]
     public void A_configured_Hotkey_is_registered_and_shown_in_the_tray_tooltip()
     {
-        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey: "Ctrl+Shift+F5") };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey: "Ctrl+Shift+F5"), Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -20,7 +20,7 @@ public class ConfigTests
     [Fact]
     public void A_Hotkey_with_odd_case_and_spacing_is_normalised_before_registration()
     {
-        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey: " ctrl + win + z ") };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey: " ctrl + win + z "), Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -36,7 +36,7 @@ public class ConfigTests
     [InlineData("Ctrl+Home")]   // unsupported key
     public void An_invalid_Hotkey_falls_back_to_the_default_with_one_balloon_naming_the_field(string hotkey)
     {
-        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey) };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(hotkey), Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -56,7 +56,7 @@ public class ConfigTests
     public void A_bad_Armed_timeout_falls_back_to_30_with_a_balloon_while_a_valid_Hotkey_in_the_same_file_is_honoured(string timeout)
     {
         var json = ConfigJson.With(hotkey: "Ctrl+Shift+F5", armedTimeoutSeconds: timeout);
-        var fake = new FakePlatform { ConfigText = json };
+        var fake = new FakePlatform { ConfigText = json, Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -72,7 +72,7 @@ public class ConfigTests
     [InlineData(3600)]
     public void A_configured_Armed_timeout_is_what_the_Hotkey_starts_the_timer_with(int seconds)
     {
-        var fake = new FakePlatform { ConfigText = ConfigJson.With(armedTimeoutSeconds: seconds.ToString()) };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(armedTimeoutSeconds: seconds.ToString()), Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
         core.Start();
         fake.Calls.Clear();
@@ -86,7 +86,7 @@ public class ConfigTests
     [Fact]
     public void Unparseable_JSON_yields_all_defaults_and_one_balloon()
     {
-        var fake = new FakePlatform { ConfigText = "{ \"hotkey\": \"Ctrl+Shift+F5\", " };
+        var fake = new FakePlatform { ConfigText = "{ \"hotkey\": \"Ctrl+Shift+F5\", ", Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -111,7 +111,7 @@ public class ConfigTests
     [Fact]
     public void A_signal_set_to_none_is_silenced()
     {
-        var fake = new FakePlatform { ConfigText = ConfigJson.With(done: "\"none\"") };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(done: "\"none\""), Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -125,7 +125,7 @@ public class ConfigTests
     [Fact]
     public void A_signal_pointed_at_a_wav_path_is_set_from_that_file()
     {
-        var fake = new FakePlatform { ConfigText = ConfigJson.With(ready: "\"click.wav\"") };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(ready: "\"click.wav\""), Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -137,7 +137,7 @@ public class ConfigTests
     [Fact]
     public void Each_missing_field_is_reported_once_and_unknown_keys_are_ignored()
     {
-        var fake = new FakePlatform { ConfigText = "{ \"hotKey\": \"Ctrl+Shift+F5\", \"sounds\": { \"ready\": null, \"corner\": null } }" };
+        var fake = new FakePlatform { ConfigText = "{ \"hotKey\": \"Ctrl+Shift+F5\", \"sounds\": { \"ready\": null, \"corner\": null } }", Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -308,7 +308,7 @@ public class ConfigTests
     [Fact]
     public void A_Sent_signal_set_to_none_is_silenced()
     {
-        var fake = new FakePlatform { ConfigText = ConfigJson.With(sent: "\"none\"") };
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(sent: "\"none\""), Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();

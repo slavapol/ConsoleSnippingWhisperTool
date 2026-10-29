@@ -6,9 +6,23 @@ public sealed partial class SnipperCore
     {
         AcquireInstance();
         LoadConfig();
+        ResolveApiKey();
         SetUpSounds();
         RegisterHotkey();
         SetUpTray();
+    }
+
+    private const string ApiKeyVariable = "OPENAI_API_KEY";
+
+    /// openAi.apiKey when the file sets it, else OPENAI_API_KEY; a blank value counts as no key.
+    private void ResolveApiKey()
+    {
+        var key = _config.OpenAiApiKey ?? _platform.ReadEnvironmentVariable(ApiKeyVariable);
+        _apiKey = string.IsNullOrWhiteSpace(key) ? null : key;
+        if (_apiKey is null)
+        {
+            Report(NoApiKeyMessage);
+        }
     }
 
     private static readonly TimeSpan PreviousInstanceExitTimeout = TimeSpan.FromSeconds(5);
