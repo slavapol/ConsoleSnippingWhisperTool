@@ -37,6 +37,9 @@ public sealed partial class SnipperCore
             return;
         }
 
+        // The hold is timed from the press, before the microphone is opened: the user is already holding the chord
+        // while the device opens, so a slow open must never turn a held chord into a Tap.
+        _listeningSince = _clock();
         if (!_platform.TryOpenMicrophone())
         {
             Report("No microphone found");
@@ -48,7 +51,6 @@ public sealed partial class SnipperCore
         _platform.InstallKeyboardHook(_config.DictationHotkey);
         _platform.WarmUpService(apiKey);
         _platform.PlaySound(Signal.Ready);
-        _listeningSince = _clock();
         _state = State.Listening;
         Log("Listening");
     }

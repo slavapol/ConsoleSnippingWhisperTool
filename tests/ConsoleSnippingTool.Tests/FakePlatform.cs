@@ -61,6 +61,9 @@ public sealed class FakePlatform : IPlatform
     /// Returned by TryOpenMicrophone.
     public bool MicrophoneOpens { get; set; } = true;
 
+    /// Runs inside TryOpenMicrophone before it answers; a test advances its clock here to stand for a slow device open.
+    public Action? OpeningMicrophone { get; set; }
+
     /// Returned by CloseMicrophone: 3 s of silence at 16 kHz.
     public AudioClip MicrophoneClip { get; set; } = new(new byte[3 * 16000 * 2], 16000);
 
@@ -165,6 +168,7 @@ public sealed class FakePlatform : IPlatform
     public bool TryOpenMicrophone()
     {
         Record("TryOpenMicrophone()");
+        OpeningMicrophone?.Invoke();
         return MicrophoneOpens;
     }
 

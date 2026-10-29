@@ -162,6 +162,34 @@ public class DictationTests
     }
 
     [Fact]
+    public void The_hold_is_timed_from_the_press_so_a_slow_microphone_open_never_turns_a_held_chord_into_a_Tap()
+    {
+        // The device takes 300 ms to open and the user holds the chord for 600 ms in all: a Release, not a Tap.
+        var (fake, core) = Started(new FakePlatform
+        {
+            Environment = ApiKey.InEnvironment,
+            OpeningMicrophone = () => Advance(Ms(300)),
+        });
+        core.OnDictationHotkey();
+        fake.Calls.Clear();
+        Advance(Ms(300));
+
+        core.OnDictationKeyUp();
+
+        string[] expected =
+        [
+            "RemoveKeyboardHook()",
+            "UnregisterCancelKey()",
+            "StopTimer()",
+            "CloseMicrophone()",
+            "PlaySound(Sent)",
+            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,language:null,prompt:null)",
+        ];
+        Assert.Equal(expected, fake.Calls);
+        Assert.DoesNotContain("09:05:07 Tap ignored", Logged(fake, core));
+    }
+
+    [Fact]
     public void The_Listening_cap_is_a_Release_whose_log_line_says_so()
     {
         var (fake, core) = Listening();
