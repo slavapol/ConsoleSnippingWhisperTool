@@ -56,6 +56,45 @@ public static class OpenAiJson
         return null;
     }
 
+    /// The body of the Cleanup request to the Responses API: the model, the core's instructions, the Transcript as the
+    /// input string, and reasoning switched off for speed (spec: Cleanup). Takes the fields, not the CleanupRequest,
+    /// so the key cannot end up in a body.
+    public static string CleanupBody(string model, string instructions, string transcript) =>
+        JsonSerializer.Serialize(new
+        {
+            model,
+            instructions,
+            input = transcript,
+            reasoning = new { effort = "none" },
+        });
+
+    /// The cleaned Transcript in a Responses object: the "text" of every output[].content[] part whose "type" is
+    /// "output_text", concatenated. Reasoning items have no content and a refusal part has no text, so an output
+    /// with nothing but those yields "". (Some SDKs add a top-level "output_text" for this; the raw JSON has none.)
+    public static string ParseCleanupOutput(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        var text = new System.Text.StringBuilder();
+        foreach (var item in document.RootElement.GetProperty("output").EnumerateArray())
+        {
+            if (!item.TryGetProperty("content", out var content) || content.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            foreach (var part in content.EnumerateArray())
+            {
+                if (part.TryGetProperty("type", out var type) && type.ValueEquals("output_text")
+                    && part.TryGetProperty("text", out var partText) && partText.ValueKind == JsonValueKind.String)
+                {
+                    text.Append(partText.GetString());
+                }
+            }
+        }
+
+        return text.ToString();
+    }
+
     private static string FirstLine(string text)
     {
         var end = text.IndexOfAny(['\r', '\n']);

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ConsoleSnippingTool.Win32.OpenAi;
 
 namespace ConsoleSnippingTool.Tests;
@@ -37,5 +38,45 @@ public class OpenAiJsonTests
     {
         Assert.Equal("502 Bad Gateway", OpenAiJson.FailureReason(502, "Bad Gateway", "<html><body>Bad Gateway</body></html>"));
         Assert.Equal("500 Internal Server Error", OpenAiJson.FailureReason(500, "Internal Server Error", """{"detail":"oops"}"""));
+    }
+
+    [Fact]
+    public void The_Cleanup_body_carries_the_model_the_instructions_the_Transcript_as_input_and_no_reasoning_effort()
+    {
+        var body = OpenAiJson.CleanupBody("gpt-6-luna", "You are a literal dictation cleanup layer.", "um, so, hello");
+
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+        Assert.Equal("gpt-6-luna", root.GetProperty("model").GetString());
+        Assert.Equal("You are a literal dictation cleanup layer.", root.GetProperty("instructions").GetString());
+        Assert.Equal("um, so, hello", root.GetProperty("input").GetString());
+        Assert.Equal("none", root.GetProperty("reasoning").GetProperty("effort").GetString());
+    }
+
+    [Fact]
+    public void The_cleaned_Transcript_is_every_output_text_part_of_the_Responses_output_concatenated()
+    {
+        // The Responses object: a reasoning item first, then the message whose content parts carry the text.
+        const string response = """
+            {"id":"resp_1","object":"response","status":"completed","output":[
+              {"type":"reasoning","id":"rs_1","summary":[]},
+              {"type":"message","id":"msg_1","role":"assistant","status":"completed","content":[
+                {"type":"output_text","text":"Hello, ","annotations":[]},
+                {"type":"output_text","text":"world.","annotations":[]}]}]}
+            """;
+
+        Assert.Equal("Hello, world.", OpenAiJson.ParseCleanupOutput(response));
+    }
+
+    [Fact]
+    public void A_refusal_only_output_yields_an_empty_cleaned_Transcript()
+    {
+        const string response = """
+            {"id":"resp_2","object":"response","status":"completed","output":[
+              {"type":"message","id":"msg_2","role":"assistant","status":"completed","content":[
+                {"type":"refusal","refusal":"I can't help with that."}]}]}
+            """;
+
+        Assert.Equal("", OpenAiJson.ParseCleanupOutput(response));
     }
 }
