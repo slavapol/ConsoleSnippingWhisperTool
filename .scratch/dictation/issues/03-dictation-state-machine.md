@@ -20,7 +20,7 @@ Follow the spec's transition list literally. Points that need a decision are dec
 - `OnTimerElapsed` in Listening: same as key-up except the log line ends with ` (cap)` and the Tap rule does not apply. In Armed/FirstCorner: unchanged.
 - `OnCancelKey` in Listening: `RemoveKeyboardHook()`, `UnregisterCancelKey()`, `StopTimer()`, `CloseMicrophone()` (clip dropped), Idle, `Log("Discarded (Esc)")`. In Armed/FirstCorner: unchanged.
 - `OnTranscript(sequence, text)`: ignored unless Transcribing and sequence is current. Whitespace-only → `Log("Nothing heard")`, Idle. Cleanup off → Insert. Cleanup on → remember the raw text, `BeginCleanup(sequence, text, new CleanupRequest(key, cleanupModel, Instructions))`, stay Transcribing.
-- `OnCleanedTranscript(sequence, text)`: same guard. `EMPTY` (trimmed, case-sensitive) or whitespace → `Log("Nothing heard")`, Idle. Else Insert.
+- `OnCleanedTranscript(sequence, text)`: same guard. `EMPTY` (trimmed, case-sensitive) → `Log("Nothing heard")`, Idle. Whitespace-only → handled exactly like `OnCleanupFailed` with reason `empty output`, so the raw text is inserted (a refusal must never lose what was said). Else Insert.
 - `OnCleanupFailed(sequence, reason)`: same guard. `Log($"Cleanup failed: {reason}; inserting the raw transcript")`, Insert the raw text.
 - `OnTranscriptionFailed(sequence, reason)`: same guard. `Report($"Dictation failed: {reason}")`, Idle.
 - Insert(text): `TryInsertText(text, out reason)`; true → `PlaySound(Done)`, `Log($"Inserted {text.Length} chars in {wait:0.0} s: {oneLine}")` where wait is now minus `_sentAt` and `oneLine` replaces `\r\n` and `\n` with the two characters `\n`; false → `Report($"Transcript could not be inserted: {reason}; nothing was pasted")`. Idle either way.
