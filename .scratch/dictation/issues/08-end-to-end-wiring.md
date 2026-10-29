@@ -1,6 +1,6 @@
 # 08 End-to-end wiring, publish and smoke run
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 03, 04, 05, 06, 07
 
 Spec: `.scratch/dictation/spec.md` → everything; this ticket makes the exe do what the spec says. Prior art: `.scratch/console-snipping-tool/issues/08-end-to-end-wiring.md`.
@@ -48,3 +48,4 @@ Build, tests and publish green; the smoke results and any reconciliation are in 
   - (e) PASS: the second copy was asked to exit by setting its `Local\ConsoleSnippingTool.Replace` event (the path a newer Instance uses, so a clean `OnExit`: Hotkeys unregistered, tray icon removed, nothing killed); it exited within 5 s with exit code 0, both probes then succeeded (registered and unregistered again), `config.json` was deleted, and no `ConsoleSnippingTool` process was left.
   - Not observable from here: the tray icon and its tooltip, the missing-key balloon at startup (the process ran without a key, so it should have shown one), the Console. Nothing was pressed, so no Dictation ran: the keyboard hook, the WASAPI capture, the transport and the paste were exercised only by the build, by ticket 05's own harness and ticket 06's tests, and through the fake Platform in the core tests.
 - Manual checklist: items 1–9 not run; they need the user's desktop, voice and an API key. Partial automated coverage: item 1's `config.json` creation is (b) above; item 7's "remove the key: balloon at startup" ran but was not observed; the process half of a relaunch (story 40, old Instance exits) is (d). Also open for the user, carried over from the earlier tickets: ticket 04's hook check (hold, release Win first; hold, release X first; an Alt chord for `WM_SYSKEYUP`), ticket 05's level check (a 1 s clip was produced but never listened to), ticket 06's first live call (never run against the API, no credits spent), ticket 07's paste observations (Notepad, a browser text box, Windows Terminal, an image snapshot restored after the paste, Ctrl held through the paste), how a short press feels after this ticket's timing fix, and whether Wispr Flow, if still installed, also fires on `Ctrl+Win+X`.
+- Resolved: branch tip b7bb125 fast-forwarded onto integration/dictation; build 0 warnings, 174 tests green on integration. The manual checklist items 1-9 remain for the user; code review of the integration branch follows.
