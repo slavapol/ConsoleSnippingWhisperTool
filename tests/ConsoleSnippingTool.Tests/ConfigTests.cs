@@ -41,7 +41,7 @@ public class ConfigTests
         Assert.Contains("RegisterHotkey(Ctrl+Alt+D)", fake.Calls);
         Assert.Contains("RegisterDictationHotkey(Ctrl+Win+X)", fake.Calls);
         var balloon = Assert.Single(Balloons(fake));
-        Assert.Equal("ShowBalloon(ConsoleSnippingTool: config.json: dictation.hotkey Ctrl+Alt+D is the same as hotkey; using default Ctrl+Win+X)", balloon);
+        Assert.Equal("ShowBalloon(ConsoleSnippingTool: config.json: dictation.hotkey Ctrl+Alt+D is the same as the Capture Hotkey in effect; using default Ctrl+Win+X)", balloon);
     }
 
     [Fact]
@@ -328,8 +328,23 @@ public class ConfigTests
     {
         var (config, problems) = Config.Load(ConfigJson.With(hotkey: "Ctrl+Alt+D", dictationHotkey: "ctrl+alt+d"));
 
-        Assert.Equal(["config.json: dictation.hotkey Ctrl+Alt+D is the same as hotkey; using default Ctrl+Win+X"], problems);
+        Assert.Equal(["config.json: dictation.hotkey Ctrl+Alt+D is the same as the Capture Hotkey in effect; using default Ctrl+Win+X"], problems);
         Assert.Equal("Ctrl+Alt+D", config.Hotkey.Text);
+        Assert.Equal(Hotkey.DictationDefault, config.DictationHotkey);
+    }
+
+    [Fact]
+    public void The_identical_Hotkey_rule_compares_against_the_Capture_Hotkey_in_effect_so_a_hotkey_fallen_back_to_its_default_still_clashes()
+    {
+        var (config, problems) = Config.Load(ConfigJson.With(hotkey: "Ctrl+Home", dictationHotkey: "Ctrl+Win+Z"));
+
+        string[] expected =
+        [
+            "config.json: hotkey \"Ctrl+Home\" is not a valid Hotkey; using default Ctrl+Win+Z",
+            "config.json: dictation.hotkey Ctrl+Win+Z is the same as the Capture Hotkey in effect; using default Ctrl+Win+X",
+        ];
+        Assert.Equal(expected, problems);
+        Assert.Equal(Hotkey.Default, config.Hotkey);
         Assert.Equal(Hotkey.DictationDefault, config.DictationHotkey);
     }
 

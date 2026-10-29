@@ -154,8 +154,10 @@ public sealed record Config
             var dictationHotkey = LoadHotkey(dictation, "dictation.hotkey", defaults.DictationHotkey, problems);
             if (dictationHotkey is { } parsed && parsed.Modifiers == hotkey.Modifiers && parsed.VirtualKey == hotkey.VirtualKey)
             {
-                // Spec: two identical Hotkeys are a config problem and the Dictation one is reset, so both jobs stay reachable.
-                problems.Add($"{FileName}: dictation.hotkey {parsed.Text} is the same as hotkey; using default {defaults.DictationHotkey.Text}");
+                // Spec: two identical Hotkeys are a config problem and the Dictation one is reset, so both jobs stay
+                // reachable. The written dictation.hotkey is compared against the Capture Hotkey in effect, that is
+                // after its own fallback, and the message says so.
+                problems.Add($"{FileName}: dictation.hotkey {parsed.Text} is the same as the Capture Hotkey in effect; using default {defaults.DictationHotkey.Text}");
                 dictationHotkey = null;
             }
 
