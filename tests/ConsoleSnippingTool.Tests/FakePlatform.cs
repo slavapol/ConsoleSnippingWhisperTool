@@ -17,17 +17,18 @@ namespace ConsoleSnippingTool.Tests;
 //   Capture          InstallMouseHook()  RemoveMouseHook()  TryCaptureToClipboard(5,10,6x11)
 //   Dictation        InstallKeyboardHook(Ctrl+Win+X)  RemoveKeyboardHook()  TryOpenSource(Microphone)  TryOpenSource(Playback)
 //                    CloseSource()  WarmUpService()
-//                    BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:20s)
-//                    BeginCleanup(seq:1,model:gpt-6-luna,timeout:20s,transcript:<text verbatim>)  TryCopyText(<text verbatim>)
+//                    BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:21s)
+//                    BeginCleanup(seq:1,model:gpt-6-luna,timeout:21s,transcript:<text verbatim>)  TryCopyText(<text verbatim>)
 //                    TryInsertText(<text verbatim>)  ReadEnvironmentVariable(OPENAI_API_KEY)
 //   Sounds           TrySetSound(Ready,BuiltIn)  TrySetSound(Done,None)  TrySetSound(Ready,File(click.wav))  PlaySound(Done)
 //   Console          ShowConsole()  HideConsole()  WriteConsoleLine(<line verbatim>)
-//   Tray             SetTrayTooltip(ConsoleSnippingTool (Ctrl+Win+Z))  SetTrayMenuState(showEnabled:true,hideEnabled:false)
+//   Tray             SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X, playback Ctrl+Win+A))
+//                    SetTrayMenuState(showEnabled:true,hideEnabled:false)
 //                    ShowBalloon(<title>: <text>)  RemoveTrayIcon()
 //   Process          Exit()
 //
 // Formats: a TimeSpan is whole or fractional seconds followed by "s" (30s, 0.5s); a Hotkey is its Text; a Region is
-// Left,Top,WidthxHeight; an AudioClip is its Duration as a TimeSpan (3s); a request's timeout is a TimeSpan (20s); a
+// Left,Top,WidthxHeight; an AudioClip is its Duration as a TimeSpan (3s); a request's timeout is a TimeSpan (21s); a
 // DictationSource is its name (Microphone, Playback); a SoundSource is its ToString (BuiltIn, None or File(path)); a
 // bool is lowercase true/false; a null string is the word null; a language list is its codes joined by | (en|ru), or
 // the word none when it is empty. TryOpenSource records only the Source it was asked for: the device name it reports
