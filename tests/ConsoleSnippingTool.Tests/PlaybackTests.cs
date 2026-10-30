@@ -215,6 +215,32 @@ public class PlaybackTests
         Assert.Equal($"14:02:10 {line}", Logged(fake, core)[^1]);
     }
 
+    [Theory]
+    [InlineData("PlaybackListening", "Microphone hotkey ignored while listening")]
+    [InlineData("PlaybackTranscribing", "Microphone hotkey ignored while transcribing")]
+    public void The_Microphone_Hotkey_during_a_Playback_Dictation_is_one_log_line_and_no_call(string state, string line)
+    {
+        var (fake, core) = In(state);
+
+        core.OnDictationHotkey();
+
+        Assert.Empty(fake.Calls);
+        Assert.Equal($"14:02:10 {line}", Logged(fake, core)[^1]);
+    }
+
+    [Theory]
+    [InlineData("PlaybackListening", "Capture hotkey ignored while listening")]
+    [InlineData("PlaybackTranscribing", "Capture hotkey ignored while transcribing")]
+    public void The_Capture_Hotkey_during_a_Playback_Dictation_is_one_log_line_and_no_call(string state, string line)
+    {
+        var (fake, core) = In(state);
+
+        core.OnHotkey();
+
+        Assert.Empty(fake.Calls);
+        Assert.Equal($"14:02:10 {line}", Logged(fake, core)[^1]);
+    }
+
     // Nothing played
 
     [Fact]

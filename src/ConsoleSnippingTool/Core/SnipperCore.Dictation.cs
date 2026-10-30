@@ -13,9 +13,9 @@ public sealed partial class SnipperCore
         _ => throw new ArgumentOutOfRangeException(nameof(source), source, null),
     });
 
-    /// The Dictation Hotkey went down. Unlike the Capture Hotkey it never toggles: while Listening the repeats of the
-    /// held chord are silent, and during the other job or a Transcription the press is one log line (spec: user
-    /// stories 13 and 14).
+    /// The Microphone Hotkey went down. Unlike the Capture Hotkey it never toggles: while Listening on the Microphone
+    /// the repeats of the held chord are silent, and during a Capture, a Playback Dictation or a Transcription the
+    /// press is one log line (spec: user stories 13 and 14; Playback Dictation spec: user story 23).
     public void OnDictationHotkey()
     {
         switch (_state)
@@ -23,14 +23,17 @@ public sealed partial class SnipperCore
             case State.Idle:
                 StartListening(DictationSource.Microphone);
                 break;
+            case State.Listening when _source == DictationSource.Microphone:
+                break;
             case State.Listening:
+                Log("Microphone hotkey ignored while listening");
                 break;
             case State.Transcribing:
-                Log("Dictation hotkey ignored while transcribing");
+                Log("Microphone hotkey ignored while transcribing");
                 break;
             case State.Armed:
             case State.FirstCorner:
-                Log("Dictation hotkey ignored while armed");
+                Log("Microphone hotkey ignored while armed");
                 break;
         }
     }

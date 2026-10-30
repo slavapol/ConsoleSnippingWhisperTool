@@ -295,10 +295,10 @@ public class DictationTests
     }
 
     [Theory]
-    [InlineData("Armed", "Dictation hotkey ignored while armed")]
-    [InlineData("FirstCorner", "Dictation hotkey ignored while armed")]
-    [InlineData("Transcribing", "Dictation hotkey ignored while transcribing")]
-    public void The_Dictation_Hotkey_during_a_Capture_or_a_Transcription_is_one_log_line_and_no_call(string state, string line)
+    [InlineData("Armed", "Microphone hotkey ignored while armed")]
+    [InlineData("FirstCorner", "Microphone hotkey ignored while armed")]
+    [InlineData("Transcribing", "Microphone hotkey ignored while transcribing")]
+    public void The_Microphone_Hotkey_during_a_Capture_or_a_Transcription_is_one_log_line_and_no_call(string state, string line)
     {
         var (fake, core) = In(state);
 
