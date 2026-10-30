@@ -100,6 +100,8 @@ public sealed record Config
         {
             hotkey = DictationHotkey.Text,
             listeningTimeoutSeconds = ListeningTimeoutSeconds,
+            playbackHotkey = PlaybackHotkey.Text,
+            playbackTimeoutSeconds = PlaybackTimeoutSeconds,
             insert = Insert,
             model = TranscriptionModel,
             languages = Languages,

@@ -1,7 +1,7 @@
 namespace ConsoleSnippingTool.Tests;
 
 /// A complete config.json in the shape the spec's Configuration section shows (and Config.ToJson writes), so a test
-/// states only the field it is about. With no arguments it is the default file. The two Hotkeys are plain text (the
+/// states only the field it is about. With no arguments it is the default file. The three Hotkeys are plain text (the
 /// template quotes them); every other value is a JSON literal, quotes included (null, "none", "x.wav", 120, "yes",
 /// false, ["en", "ru"]), so a test can state a wrong type as easily as a right value.
 internal static class ConfigJson
@@ -16,6 +16,8 @@ internal static class ConfigJson
         string apiKey = "null",
         string dictationHotkey = "Ctrl+Win+X",
         string listeningTimeoutSeconds = "120",
+        string playbackHotkey = "Ctrl+Win+A",
+        string playbackTimeoutSeconds = "600",
         string insert = "false",
         string model = "\"gpt-transcribe\"",
         string languages = "[\"en\", \"ru\"]",
@@ -37,6 +39,8 @@ internal static class ConfigJson
           "dictation": {
             "hotkey": "{{dictationHotkey}}",
             "listeningTimeoutSeconds": {{listeningTimeoutSeconds}},
+            "playbackHotkey": "{{playbackHotkey}}",
+            "playbackTimeoutSeconds": {{playbackTimeoutSeconds}},
             "insert": {{insert}},
             "model": {{model}},
             "languages": {{languages}},
