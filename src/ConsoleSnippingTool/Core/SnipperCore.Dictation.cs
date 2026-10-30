@@ -62,7 +62,7 @@ public sealed partial class SnipperCore
         _listeningSince = _clock();
         if (!_platform.TryOpenSource(source, out var deviceName))
         {
-            Report("No microphone found");
+            Report(source == DictationSource.Microphone ? "No microphone found" : "Playback could not be opened");
             return;
         }
 

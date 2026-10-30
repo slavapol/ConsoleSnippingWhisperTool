@@ -34,6 +34,52 @@ public class PlaybackTests
         Assert.Equal(["14:02:07 Listening (playback: Test Device)"], Logged(fake, core));
     }
 
+    [Fact]
+    public void Playback_that_does_not_open_is_reported_with_a_balloon_and_nothing_else_starts()
+    {
+        var (fake, core) = Started(new FakePlatform { Environment = ApiKey.InEnvironment, SourceOpens = false });
+
+        core.OnPlaybackHotkey();
+
+        string[] expected = ["TryOpenSource(Playback)", "ShowBalloon(ConsoleSnippingTool: Playback could not be opened)"];
+        Assert.Equal(expected, fake.Calls);
+        Assert.Equal(["14:02:07 Playback could not be opened"], Logged(fake, core));
+    }
+
+    [Fact]
+    public void The_Playback_Hotkey_without_an_API_key_repeats_the_startup_balloon_and_never_opens_Playback()
+    {
+        var (fake, core) = Started(new FakePlatform()); // no key in config.json or the environment
+
+        core.OnPlaybackHotkey();
+
+        Assert.Equal(["ShowBalloon(ConsoleSnippingTool: Dictation needs an API key: set openAi.apiKey in config.json or the OPENAI_API_KEY environment variable)"], fake.Calls);
+    }
+
+    [Fact]
+    public void The_Listening_line_names_the_playback_device_the_adapter_opened()
+    {
+        var (fake, core) = Started(new FakePlatform
+        {
+            Environment = ApiKey.InEnvironment,
+            DeviceName = "Headset Earphone (Jabra Evolve2 65)",
+        });
+
+        core.OnPlaybackHotkey();
+
+        Assert.Equal(["14:02:07 Listening (playback: Headset Earphone (Jabra Evolve2 65))"], Logged(fake, core));
+    }
+
+    [Fact]
+    public void The_Listening_line_leaves_the_name_out_when_the_adapter_reports_none()
+    {
+        var (fake, core) = Started(new FakePlatform { Environment = ApiKey.InEnvironment, DeviceName = "" });
+
+        core.OnPlaybackHotkey();
+
+        Assert.Equal(["14:02:07 Listening (playback)"], Logged(fake, core));
+    }
+
     // Helpers
 
     /// A started Instance with an API key, Idle, with the startup calls cleared away.
