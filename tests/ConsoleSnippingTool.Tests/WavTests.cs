@@ -4,8 +4,9 @@ using ConsoleSnippingTool.Core;
 
 namespace ConsoleSnippingTool.Tests;
 
-// The seam is Wav.FromPcm16, the in-memory RIFF/WAVE writer the built-in click and the microphone clip share. Expected
-// header values are the canonical 44-byte PCM layout worked out by hand, not recomputed the way the writer does.
+// Wav.FromPcm16 is pure, I/O-free code below the Platform seam, tested directly: the in-memory RIFF/WAVE writer the
+// built-in click and the microphone clip share. Expected header values are the canonical 44-byte PCM layout worked out
+// by hand, not recomputed the way the writer does.
 public class WavTests
 {
     [Fact]

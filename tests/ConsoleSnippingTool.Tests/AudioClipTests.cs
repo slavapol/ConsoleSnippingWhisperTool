@@ -2,7 +2,8 @@ using ConsoleSnippingTool.Core;
 
 namespace ConsoleSnippingTool.Tests;
 
-// The seam is the AudioClip value type the microphone hands the core: 16-bit mono PCM, so two bytes per sample.
+// AudioClip, the value the microphone hands the core, is pure, I/O-free code below the Platform seam, tested directly:
+// 16-bit mono PCM, so two bytes per sample.
 public class AudioClipTests
 {
     [Fact]

@@ -4,9 +4,10 @@ using ConsoleSnippingTool.Win32.OpenAi;
 
 namespace ConsoleSnippingTool.Tests;
 
-// The seam is OpenAiJson, the pure part of the transport to the Service: the request bodies the adapter sends and the
-// parsing of what comes back, exercised without HTTP. The plumbing around it (the HttpClient, the thread pool, the
-// posting back to the message loop) is adapter code and is verified by building, as the spec's Testing Decisions say.
+// OpenAiJson is pure, I/O-free code below the Platform seam, tested directly: the request bodies the adapter sends to
+// the Service and the parsing of what comes back, exercised without HTTP. The plumbing around it (the HttpClient, the
+// thread pool, the posting back to the message loop) is adapter code and is verified by building, as the spec's
+// Testing Decisions say.
 public class OpenAiJsonTests
 {
     [Fact]
