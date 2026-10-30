@@ -33,81 +33,32 @@ public sealed partial class Win32Platform
     /// modifiers to be up, send Ctrl+V, and put the snapshot back 300 ms later. Runs on the message-loop thread, the
     /// only STA thread, which every Clipboard call needs; the modifier wait may hold it for up to 2 s, and the only
     /// thing that delays is the paste itself. True means the paste was sent, not that the target consumed it: a
-    /// window of higher integrity receives nothing and Windows reports no error.
+    /// window of higher integrity receives nothing and Windows reports no error. Both failures after the Transcript
+    /// went on restore the snapshot at once.
     public bool TryInsertText(string text, out string reason)
     {
-        if (!TrySnapshotClipboard(out var snapshot) || !TrySetClipboard(TranscriptDataObject(text)))
+        if (!ClipboardSnapshot.TryTake(out var snapshot) || !snapshot.TryReplaceWith(TranscriptDataObject(text)))
         {
             reason = ClipboardLockedReason;
             return false;
         }
 
-        var sequenceAfterTranscript = NativeMethods.GetClipboardSequenceNumber();
-
         if (!WaitForModifiersUp())
         {
-            RestoreClipboard(snapshot, sequenceAfterTranscript);
+            snapshot.Restore();
             reason = "modifier keys still held";
             return false;
         }
 
         if (!SendCtrlV())
         {
-            RestoreClipboard(snapshot, sequenceAfterTranscript);
+            snapshot.Restore();
             reason = "input blocked";
             return false;
         }
 
-        ScheduleRestore(snapshot, sequenceAfterTranscript);
+        snapshot.RestoreAfter(RestoreDelayMilliseconds);
         reason = "";
-        return true;
-    }
-
-    // Snapshot
-
-    /// Copies every format on the clipboard into a DataObject of our own. The clipboard's IDataObject may be a proxy
-    /// into the owning app, so each format is read now, before the Transcript replaces it; a format whose data cannot
-    /// be read (the owner fails to render it, or it is a serialised object WinForms no longer deserialises) is left
-    /// out rather than failing the Insert. Formats are taken without conversion on either side: the names are the
-    /// ones actually on the clipboard, including those Windows synthesises, and each comes back as the one shape
-    /// WinForms writes natively (text as string, a bitmap as Bitmap, a file list as string[], the rest as raw bytes).
-    /// False only when the clipboard cannot be opened; GetDataObject retries that for about a second on its own.
-    private static bool TrySnapshotClipboard([NotNullWhen(true)] out DataObject? snapshot)
-    {
-        IDataObject? source;
-        string[] formats;
-        try
-        {
-            source = Clipboard.GetDataObject();
-            formats = source?.GetFormats(autoConvert: false) ?? [];
-        }
-        catch (ExternalException)
-        {
-            snapshot = null;
-            return false;
-        }
-
-        snapshot = new DataObject();
-        foreach (var format in formats)
-        {
-            object? data;
-            try
-            {
-                data = source!.GetData(format, autoConvert: false);
-            }
-            catch (Exception)
-            {
-                // The owner's COM error, WinForms' NotSupportedException for a serialised object, or whatever else one
-                // format does: that format is skipped and the others still go into the snapshot.
-                continue;
-            }
-
-            if (data is not null)
-            {
-                snapshot.SetData(format, autoConvert: false, data);
-            }
-        }
-
         return true;
     }
 
@@ -188,34 +139,105 @@ public sealed partial class Win32Platform
         },
     };
 
-    // Restore
+    // Snapshot and restore
 
-    /// The target reads the clipboard when it handles the paste, some time after SendInput returns, so the restore
-    /// waits 300 ms (a guess, ADR-0003) on a message-loop timer of its own: the shared one-shot may already be timing
-    /// the next Dictation. One timer per Insert, carrying its own snapshot, so nothing is shared between Inserts.
-    private static void ScheduleRestore(DataObject snapshot, uint sequenceAfterTranscript)
+    /// What was on the clipboard before the Transcript went on, and the one way it goes back (ADR-0003). The restore is
+    /// guarded by the clipboard sequence number taken right after the Transcript replaced the snapshot: a different
+    /// number at restore time means another writer in between, and the clipboard is theirs.
+    private sealed class ClipboardSnapshot
     {
-        var timer = new System.Windows.Forms.Timer { Interval = RestoreDelayMilliseconds };
-        timer.Tick += (_, _) =>
-        {
-            timer.Stop();
-            timer.Dispose();
-            RestoreClipboard(snapshot, sequenceAfterTranscript);
-        };
-        timer.Start();
-    }
+        private readonly DataObject _contents;
+        private uint _sequenceAfterTranscript;
 
-    /// Puts the snapshot back, unless the sequence number shows another writer since the Transcript went on: then the
-    /// clipboard is theirs and is left alone. An empty snapshot (nothing was on the clipboard) puts an empty data
-    /// object back, leaving the clipboard empty. A clipboard still locked after the retries is let go: the core is
-    /// Idle by now and has nobody to report to, and the Transcript stays on the clipboard.
-    private static void RestoreClipboard(DataObject snapshot, uint sequenceAfterTranscript)
-    {
-        if (NativeMethods.GetClipboardSequenceNumber() != sequenceAfterTranscript)
+        private ClipboardSnapshot(DataObject contents) => _contents = contents;
+
+        /// Copies every format on the clipboard into a DataObject of our own. The clipboard's IDataObject may be a proxy
+        /// into the owning app, so each format is read now, before the Transcript replaces it; a format whose data
+        /// cannot be read (the owner fails to render it, or it is a serialised object WinForms no longer deserialises)
+        /// is left out rather than failing the Insert. Formats are taken without conversion on either side: the names
+        /// are the ones actually on the clipboard, including those Windows synthesises, and each comes back as the one
+        /// shape WinForms writes natively (text as string, a bitmap as Bitmap, a file list as string[], the rest as raw
+        /// bytes). False only when the clipboard cannot be opened; GetDataObject retries that for about a second on its
+        /// own. An empty clipboard gives an empty snapshot, which restores to an empty clipboard.
+        public static bool TryTake([NotNullWhen(true)] out ClipboardSnapshot? snapshot)
         {
-            return;
+            IDataObject? source;
+            string[] formats;
+            try
+            {
+                source = Clipboard.GetDataObject();
+                formats = source?.GetFormats(autoConvert: false) ?? [];
+            }
+            catch (ExternalException)
+            {
+                snapshot = null;
+                return false;
+            }
+
+            var contents = new DataObject();
+            foreach (var format in formats)
+            {
+                object? data;
+                try
+                {
+                    data = source!.GetData(format, autoConvert: false);
+                }
+                catch (Exception)
+                {
+                    // The owner's COM error, WinForms' NotSupportedException for a serialised object, or whatever else
+                    // one format does: that format is skipped and the others still go into the snapshot.
+                    continue;
+                }
+
+                if (data is not null)
+                {
+                    contents.SetData(format, autoConvert: false, data);
+                }
+            }
+
+            snapshot = new ClipboardSnapshot(contents);
+            return true;
         }
 
-        TrySetClipboard(snapshot);
+        /// Puts the Transcript on the clipboard in the snapshot's place and notes where the sequence number stands
+        /// after that, so Restore can tell a later writer apart. False when the clipboard stays locked.
+        public bool TryReplaceWith(DataObject transcript)
+        {
+            if (!TrySetClipboard(transcript))
+            {
+                return false;
+            }
+
+            _sequenceAfterTranscript = NativeMethods.GetClipboardSequenceNumber();
+            return true;
+        }
+
+        /// Puts the snapshot back, unless the sequence number shows another writer since the Transcript went on: then
+        /// the clipboard is theirs and is left alone. A clipboard still locked after the retries is let go: the core is
+        /// Idle by now and has nobody to report to, and the Transcript stays on the clipboard.
+        public void Restore()
+        {
+            if (NativeMethods.GetClipboardSequenceNumber() != _sequenceAfterTranscript)
+            {
+                return;
+            }
+
+            TrySetClipboard(_contents);
+        }
+
+        /// The target reads the clipboard when it handles the paste, some time after SendInput returns, so the restore
+        /// waits (300 ms, a guess, ADR-0003) on a message-loop timer of its own: the shared one-shot may already be
+        /// timing the next Dictation. One timer per Insert, so nothing is shared between Inserts.
+        public void RestoreAfter(int milliseconds)
+        {
+            var timer = new System.Windows.Forms.Timer { Interval = milliseconds };
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+                timer.Dispose();
+                Restore();
+            };
+            timer.Start();
+        }
     }
 }
