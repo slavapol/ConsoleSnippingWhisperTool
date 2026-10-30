@@ -35,10 +35,11 @@ public sealed partial class SnipperCore
     /// opened; the Tap threshold is measured from here (spec: Hotkey, release and Tap).
     private DateTime _listeningSince;
 
-    /// The Source of the Dictation in progress, set on entering Listening and kept through Transcribing, so the
-    /// Release, the ignore lines and the delivery know which Dictation they belong to (Playback Dictation spec: Core
-    /// states and transitions).
-    private DictationSource _source;
+    /// The Source of the Dictation in progress and the rules that come with it, set on entering Listening and kept
+    /// through Transcribing, so the Release, the ignore lines and the delivery know which Dictation they belong to
+    /// (Playback Dictation spec: Core states and transitions). Read only while Listening or Transcribing; until the
+    /// first Listening it holds the Microphone's rules as a placeholder.
+    private SourceRules _source;
 
     /// Numbers each request the Service is sent, so a result from an earlier Dictation is recognised and ignored.
     /// 0 until the first Release; incremented when a request is sent.
@@ -67,6 +68,7 @@ public sealed partial class SnipperCore
     {
         _platform = platform;
         _clock = clock ?? (() => DateTime.Now);
+        _source = SourceRules.For(DictationSource.Microphone, _config);
     }
 
     /// Timestamps a line, keeps it in the ring and writes it to the Console when it is shown.
@@ -100,7 +102,7 @@ public sealed partial class SnipperCore
             case State.FirstCorner:
                 Cancel(CancelReason.Escape);
                 break;
-            case State.Listening when _source == DictationSource.Microphone:
+            case State.Listening when _source.Held:
                 Discard(DiscardReason.Escape);
                 break;
         }

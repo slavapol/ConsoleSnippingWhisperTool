@@ -4,70 +4,46 @@ namespace ConsoleSnippingTool.Core;
 
 public sealed partial class SnipperCore
 {
-    /// The Listening cap of each Source: dictation.listeningTimeoutSeconds for the Microphone, playbackTimeoutSeconds
-    /// for Playback (Playback Dictation spec: user story 13).
-    private TimeSpan CapFor(DictationSource source) => TimeSpan.FromSeconds(source switch
-    {
-        DictationSource.Microphone => _config.MicrophoneTimeoutSeconds,
-        DictationSource.Playback => _config.PlaybackTimeoutSeconds,
-        _ => throw new ArgumentOutOfRangeException(nameof(source), source, null),
-    });
-
     /// The Microphone Hotkey went down. Unlike the Capture Hotkey it never toggles: while Listening on the Microphone
-    /// the repeats of the held chord are silent, and during a Capture, a Playback Dictation or a Transcription the
-    /// press is one log line (spec: user stories 13 and 14; Playback Dictation spec: user story 23).
-    public void OnMicrophoneHotkey()
+    /// the repeats of the held chord are silent (spec: user stories 13 and 14; Playback Dictation spec: user story 23).
+    public void OnMicrophoneHotkey() => OnDictationHotkey(SourceRules.For(DictationSource.Microphone, _config));
+
+    /// The Playback Hotkey was pressed: the first press opens Listening on Playback, the second is its Release
+    /// (Playback Dictation spec: user story 24).
+    public void OnPlaybackHotkey() => OnDictationHotkey(SourceRules.For(DictationSource.Playback, _config));
+
+    /// Either Dictation Hotkey: from Idle it opens Listening on its Source. While Listening on that same Source a held
+    /// Hotkey's press can only be autorepeat and is silent, and a pressed one's second press is the Release. During a
+    /// Capture, the other Source's Listening or any Transcription the press is one log line naming the Hotkey.
+    private void OnDictationHotkey(SourceRules pressed)
     {
         switch (_state)
         {
             case State.Idle:
-                StartListening(DictationSource.Microphone);
+                StartListening(pressed);
                 break;
-            case State.Listening when _source == DictationSource.Microphone:
+            case State.Listening when _source.Source != pressed.Source:
+                Log($"{pressed.Name} hotkey ignored while listening");
+                break;
+            case State.Listening when pressed.Held:
                 break;
             case State.Listening:
-                Log("Microphone hotkey ignored while listening");
-                break;
-            case State.Transcribing:
-                Log("Microphone hotkey ignored while transcribing");
-                break;
-            case State.Armed:
-            case State.FirstCorner:
-                Log("Microphone hotkey ignored while armed");
-                break;
-        }
-    }
-
-    /// The Playback Hotkey was pressed: the first press opens Listening on Playback, the second is its Release. During
-    /// a Capture, a Microphone Dictation or any Transcription the press is one log line (Playback Dictation spec: user
-    /// story 24).
-    public void OnPlaybackHotkey()
-    {
-        switch (_state)
-        {
-            case State.Idle:
-                StartListening(DictationSource.Playback);
-                break;
-            case State.Listening when _source == DictationSource.Playback:
                 Release(byCap: false);
                 break;
-            case State.Listening:
-                Log("Playback hotkey ignored while listening");
-                break;
             case State.Transcribing:
-                Log("Playback hotkey ignored while transcribing");
+                Log($"{pressed.Name} hotkey ignored while transcribing");
                 break;
             case State.Armed:
             case State.FirstCorner:
-                Log("Playback hotkey ignored while armed");
+                Log($"{pressed.Name} hotkey ignored while armed");
                 break;
         }
     }
 
-    /// Opens the Source and starts reading it; Ready is the one signal that it worked. Only the Microphone installs the
+    /// Opens the Source and starts reading it; Ready is the one signal that it worked. Only a held Hotkey installs the
     /// keyboard hook: its Release is a key going up and Esc discards it, while Playback ends on a second press and
     /// leaves Esc to the user's apps (Playback Dictation spec: user stories 2 and 15).
-    private void StartListening(DictationSource source)
+    private void StartListening(SourceRules source)
     {
         if (_apiKey is not { } apiKey)
         {
@@ -78,35 +54,38 @@ public sealed partial class SnipperCore
         // Listening is timed from the press, before the device is opened, for both Sources: the user's time starts at
         // the press, so a slow open must never turn a held chord or a second press into a Tap.
         _listeningSince = _clock();
-        if (!_platform.TryOpenSource(source, out var deviceName))
+        if (!_platform.TryOpenSource(source.Source, out var deviceName))
         {
-            Report(source == DictationSource.Microphone ? "No microphone found" : "Playback could not be opened");
+            Report(source.OpenFailure);
             return;
         }
 
         _source = source;
-        _platform.StartTimer(CapFor(source));
-        if (source == DictationSource.Microphone)
+        _platform.StartTimer(source.Cap);
+        if (source.Held)
         {
-            _platform.InstallKeyboardHook(_config.MicrophoneHotkey);
+            _platform.InstallKeyboardHook(source.Hotkey);
         }
 
         _platform.WarmUpService(apiKey);
         _platform.PlaySound(Signal.Ready);
         _state = State.Listening;
-        Log(ListeningLine(source == DictationSource.Microphone ? "microphone" : "playback", deviceName));
+        Log(ListeningLine(source, deviceName));
     }
 
     /// "Listening (microphone: Headset)", or "Listening (microphone)" when the adapter could not read the device's
     /// name, so a Dictation that hears the wrong device is easy to spot (Playback Dictation spec: user story 27).
-    private static string ListeningLine(string source, string deviceName) =>
-        deviceName.Length == 0 ? $"Listening ({source})" : $"Listening ({source}: {deviceName})";
+    private static string ListeningLine(SourceRules source, string deviceName)
+    {
+        var name = source.Name.ToLowerInvariant();
+        return deviceName.Length == 0 ? $"Listening ({name})" : $"Listening ({name}: {deviceName})";
+    }
 
     /// Any key of the held chord went up: the Release. Playback installs no hook, so a key-up while Listening on it
     /// can only be a stale message and is ignored.
     public void OnMicrophoneKeyUp()
     {
-        if (_state == State.Listening && _source == DictationSource.Microphone)
+        if (_state == State.Listening && _source.Held)
         {
             Release(byCap: false);
         }
@@ -114,12 +93,6 @@ public sealed partial class SnipperCore
 
     /// A chord held for less than this is a Tap: a stray press that sends nothing (spec: Hotkey, release and Tap).
     private static readonly TimeSpan TapThreshold = TimeSpan.FromMilliseconds(500);
-
-    /// A Playback clip with less audio than this is not sent. Loopback records nothing while no app plays, but the Ready
-    /// click lands in the clip whenever the default output is also the communication one, followed by the 0.4 s of
-    /// silence the sound player keeps rendering after it, so a clip in which nothing else played is about 0.44 s long
-    /// (Playback Dictation spec: user story 17). The Microphone sends every Release that is not a Tap.
-    private static readonly TimeSpan MinimumPlayback = TimeSpan.FromSeconds(1);
 
     /// Ends Listening and sends what was heard; Sent is the signal that the audio is on its way. The cap counts as a
     /// Release (spec: user story 12) and is never a Tap, however short it is configured.
@@ -133,8 +106,9 @@ public sealed partial class SnipperCore
             return;
         }
 
-        if (_source == DictationSource.Playback && clip.Duration < MinimumPlayback)
+        if (clip.Duration < _source.MinimumAudio)
         {
+            // Only Playback has a minimum, and a clip under it is one in which nothing played.
             NothingHeard("Nothing heard (nothing played)");
             return;
         }
@@ -175,11 +149,11 @@ public sealed partial class SnipperCore
     /// by the time a request is built.
     private string ApiKey => _apiKey ?? throw new InvalidOperationException("Dictation without an API key");
 
-    /// Stops reading the Source: the Microphone's hook off (and with it Esc), cap stopped, device closed. The tail of
+    /// Stops reading the Source: a held Hotkey's hook off (and with it Esc), cap stopped, device closed. The tail of
     /// every Release and Discard; the clip is what the Source heard. Playback installed no hook, so it removes none.
     private AudioClip StopListening()
     {
-        if (_source == DictationSource.Microphone)
+        if (_source.Held)
         {
             _platform.RemoveKeyboardHook();
         }
@@ -253,10 +227,10 @@ public sealed partial class SnipperCore
         }
     }
 
-    /// Only a Microphone Dictation is Inserted, and only with dictation.insert on. A Playback Transcript is always
-    /// Copied, so one that lands a minute after the Release never pastes into whatever has focus by then (Playback
-    /// Dictation spec: user story 18).
-    private bool Inserting => _source == DictationSource.Microphone && _config.Insert;
+    /// Only a Microphone Dictation is Inserted, and only with dictation.insert on (SourceRules.Inserts). A Playback
+    /// Transcript is always Copied, so one that lands a minute after the Release never pastes into whatever has focus
+    /// by then (Playback Dictation spec: user story 18).
+    private bool Inserting => _source.Inserts;
 
     /// The delivery in effect as a log line names it: "copying" by default, "inserting" with dictation.insert on.
     private string DeliveryVerb => Inserting ? "inserting" : "copying";
