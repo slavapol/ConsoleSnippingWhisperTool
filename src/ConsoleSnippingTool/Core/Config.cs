@@ -301,9 +301,9 @@ public sealed record Config
             return fallback;
         }
 
-        if (value.ValueKind == JsonValueKind.String && value.GetString() is { } text && !string.IsNullOrWhiteSpace(text))
+        if (IsNonEmptyString(value))
         {
-            return text;
+            return value.GetString()!;
         }
 
         problems.Add(Invalid(path, value, "is not a non-empty string", fallback));
@@ -323,7 +323,7 @@ public sealed record Config
         {
             case JsonValueKind.Null:
                 return null;
-            case JsonValueKind.String when allowEmpty || !string.IsNullOrWhiteSpace(value.GetString()):
+            case JsonValueKind.String when allowEmpty || IsNonEmptyString(value):
                 return value.GetString();
             default:
                 problems.Add(Invalid(path, value, allowEmpty ? "is not null or a string" : "is not null or a non-empty string", fallback));
@@ -354,6 +354,7 @@ public sealed record Config
         return fallback;
     }
 
+    /// A JSON string with something in it: what a model name, a key and a language code must each be.
     private static bool IsNonEmptyString(JsonElement element) =>
         element.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(element.GetString());
 
