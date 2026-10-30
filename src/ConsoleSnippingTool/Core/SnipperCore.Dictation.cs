@@ -101,8 +101,12 @@ public sealed partial class SnipperCore
         });
     }
 
+    /// The timeout both requests of a Dictation carry. Fixed for now; ticket 03 of Playback Dictation replaces it with
+    /// the spec's length-based formula (Requests and their timeout).
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(20);
+
     private TranscriptionRequest BuildTranscriptionRequest() =>
-        new(ApiKey, _config.TranscriptionModel, _config.Languages, _config.Prompt);
+        new(ApiKey, _config.TranscriptionModel, _config.Languages, _config.Prompt, RequestTimeout);
 
     /// The key Listening was entered with; a Dictation never gets past the Hotkey without one, so it is never missing
     /// by the time a request is built.
@@ -145,7 +149,7 @@ public sealed partial class SnipperCore
         }
 
         _rawTranscript = text;
-        _platform.BeginCleanup(sequence, text, new CleanupRequest(ApiKey, _config.CleanupModel, CleanupInstructions));
+        _platform.BeginCleanup(sequence, text, new CleanupRequest(ApiKey, _config.CleanupModel, CleanupInstructions, RequestTimeout));
     }
 
     /// Silence or breathing: nothing to deliver, no Done, and whatever languages the Service named are not kept for
