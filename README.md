@@ -3,7 +3,7 @@
 A Windows tray tool with no on-screen UI that does two jobs from a hotkey:
 
 - **Capture**: press `Ctrl+Win+Z`, click two corners, and the rectangle between them is on the clipboard as PNG and bitmap. Sounds confirm each step.
-- **Dictation**: hold `Ctrl+Win+X`, speak, release, and what you said is pasted into the app that has keyboard focus. Transcription runs on OpenAI's API with your own key.
+- **Dictation**: hold `Ctrl+Win+X`, speak, release, and what you said lands on the clipboard, ready to paste wherever you like; with `"insert": true` it is pasted straight into the app that has keyboard focus instead. Transcription runs on OpenAI's API with your own key.
 
 Everything is configured in one file, `config.json`, beside the exe.
 
@@ -35,8 +35,9 @@ Everything is configured in one file, `config.json`, beside the exe.
   "dictation": {
     "hotkey": "Ctrl+Win+X",
     "listeningTimeoutSeconds": 120,
+    "insert": false,
     "model": "gpt-transcribe",
-    "language": null,
+    "languages": ["en", "ru"],
     "prompt": null,
     "cleanup": false,
     "cleanupModel": "gpt-6-luna"
@@ -79,7 +80,7 @@ A file that is missing or is not a WAV falls back to the built-in click with a C
 | `sounds.ready` | the tool starts reading your input: a Capture is armed, or the microphone opened for a Dictation |
 | `sounds.corner` | the first corner of a Capture was taken |
 | `sounds.sent` | you released the Dictation hotkey and the audio is on its way |
-| `sounds.done` | the result landed: the image is on the clipboard, or the text was pasted |
+| `sounds.done` | the result landed: the image or the text is on the clipboard, or the text was pasted |
 
 ### OpenAI settings
 
@@ -93,10 +94,11 @@ Without a key anywhere, the tool starts normally, Capture works, and each press 
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `dictation.hotkey` | string | `"Ctrl+Win+X"` | The hotkey you hold while speaking. Releasing any key of the chord ends the recording. A press shorter than half a second inserts nothing. Esc while holding discards the recording. If it is the same chord as the Capture hotkey in effect, it is reset to the default and reported. |
-| `dictation.listeningTimeoutSeconds` | integer, 1 to 600 | `120` | The longest one recording can be. When the cap hits, the audio so far is transcribed and pasted as if you had released. |
+| `dictation.hotkey` | string | `"Ctrl+Win+X"` | The hotkey you hold while speaking. Releasing any key of the chord ends the recording. A press shorter than half a second does nothing. Esc while holding discards the recording. If it is the same chord as the Capture hotkey in effect, it is reset to the default and reported. |
+| `dictation.listeningTimeoutSeconds` | integer, 1 to 600 | `120` | The longest one recording can be. When the cap hits, the audio so far is transcribed and delivered as if you had released. |
+| `dictation.insert` | `true` or `false` | `false` | `false` leaves the text on the clipboard as a normal copy: it replaces whatever was there, shows up in `Win+V` history, and you paste it where and when you like. `true` pastes it straight into the app that has keyboard focus at the moment you release, keeps it out of `Win+V`, and puts the previous clipboard contents back afterwards. |
 | `dictation.model` | non-empty string | `"gpt-transcribe"` | The OpenAI transcription model. Change it when OpenAI retires the default. |
-| `dictation.language` | string or `null` | `null` | `null` lets the service detect the language. A code such as `"en"`, `"de"` or `"ru"` pins it, which helps when auto-detect guesses wrong on short phrases. |
+| `dictation.languages` | array of strings, or `null` | `["en", "ru"]` | The languages you expect to speak, as codes such as `"en"`, `"de"` or `"ru"`; a bilingual speaker lists both. `null` or `[]` lets the service detect freely. The codes are not checked at startup: an unknown one makes the service reject that Dictation, which is reported like any other failure. Each Console line shows the languages the service actually detected. |
 | `dictation.prompt` | string or `null` | `null` | Free text the service uses as a vocabulary and style hint: names, product terms, jargon, preferred spellings. |
 | `dictation.cleanup` | `true` or `false` | `false` | When `true`, the transcript goes through a second, small language-model call that removes fillers and false starts and keeps only your final self-correction. It adds a fraction of a second per Dictation. |
 | `dictation.cleanupModel` | non-empty string | `"gpt-6-luna"` | The model used for the cleanup pass. |
@@ -121,8 +123,9 @@ What the Dictation costs: one transcription call per Dictation at the model's pe
   "dictation": {
     "hotkey": "Ctrl+Alt+D",
     "listeningTimeoutSeconds": 120,
+    "insert": false,
     "model": "gpt-transcribe",
-    "language": null,
+    "languages": ["en", "ru"],
     "prompt": null,
     "cleanup": false,
     "cleanupModel": "gpt-6-luna"
@@ -132,7 +135,7 @@ What the Dictation costs: one transcription call per Dictation at the model's pe
 
 ### Dictation tuned for a bilingual developer
 
-The key lives in the file, the language is left on auto-detect so both English and Russian work, the prompt teaches the service the names it keeps hearing, and the cleanup pass is on.
+The key lives in the file, the expected languages are English and Russian so either works without choosing, the prompt teaches the service the names it keeps hearing, the cleanup pass is on, and `insert` is on so the text is pasted straight into the editor instead of waiting on the clipboard.
 
 ```json
 {
@@ -145,8 +148,9 @@ The key lives in the file, the language is left on auto-detect so both English a
   "dictation": {
     "hotkey": "Ctrl+Win+X",
     "listeningTimeoutSeconds": 180,
+    "insert": true,
     "model": "gpt-transcribe",
-    "language": null,
+    "languages": ["en", "ru"],
     "prompt": "ConsoleSnippingTool, WASAPI, Win32, xUnit, Slava. Technical dictation about C# and Windows; keep code identifiers as spoken.",
     "cleanup": true,
     "cleanupModel": "gpt-6-luna"
@@ -165,8 +169,9 @@ The key lives in the file, the language is left on auto-detect so both English a
   "dictation": {
     "hotkey": "Ctrl+Win+X",
     "listeningTimeoutSeconds": 60,
+    "insert": false,
     "model": "gpt-transcribe",
-    "language": "en",
+    "languages": ["en"],
     "prompt": null,
     "cleanup": false,
     "cleanupModel": "gpt-6-luna"
@@ -192,8 +197,9 @@ Put the files beside the exe, or anywhere and use a full path. Backslashes are d
   "dictation": {
     "hotkey": "Ctrl+Win+X",
     "listeningTimeoutSeconds": 120,
+    "insert": false,
     "model": "gpt-transcribe",
-    "language": null,
+    "languages": ["en", "ru"],
     "prompt": null,
     "cleanup": false,
     "cleanupModel": "gpt-6-luna"
@@ -214,8 +220,9 @@ Put the files beside the exe, or anywhere and use a full path. Backslashes are d
   "dictation": {
     "hotkey": "Ctrl+Win+X",
     "listeningTimeoutSeconds": 120,
+    "insert": false,
     "model": "gpt-transcribe",
-    "language": "en",
+    "languages": ["en"],
     "prompt": null,
     "cleanup": false,
     "cleanupModel": "gpt-6-luna",
@@ -247,8 +254,9 @@ config.json: sounds is missing; using default built-in click
 config.json: openAi is missing; using defaults
 config.json: dictation.hotkey Ctrl+Win+Z is the same as the Capture Hotkey in effect; using default Ctrl+Win+X
 config.json: dictation.listeningTimeoutSeconds is missing; using default 120
+config.json: dictation.insert is missing; using default false
 config.json: dictation.model is missing; using default gpt-transcribe
-config.json: dictation.language is missing; using default null
+config.json: dictation.languages is missing; using default en, ru
 config.json: dictation.prompt is missing; using default null
 config.json: dictation.cleanup "yes" is not true or false; using default false
 config.json: dictation.cleanupModel is missing; using default gpt-6-luna
@@ -258,4 +266,4 @@ Missing fields are reported too, so the quickest way to a quiet startup is to st
 
 ## Where to look when something is off
 
-The tray menu has Show, Hide and Exit. Show opens a Console that prints both hotkeys, how to cancel, and one timestamped line per event: armed, corners, captured size, listening, how many seconds of audio were sent, how many characters were pasted and how long the wait was, the transcript itself, and every fallback or failure with its reason.
+The tray menu has Show, Hide and Exit. Show opens a Console that prints both hotkeys, how to cancel, and one timestamped line per event: armed, corners, captured size, listening, how many seconds of audio were sent, how many characters were copied or pasted and how long the wait was, the languages the service detected, the transcript itself, and every fallback or failure with its reason.
