@@ -1,25 +1,34 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
+using ConsoleSnippingTool.Core;
 
 namespace ConsoleSnippingTool.Win32;
 
-/// One Listening's worth of microphone: the Default Communication Device opened in WASAPI shared mode, the audio engine
-/// converting to 16-bit mono PCM at the requested rate, drained by a worker thread into memory until Close. TryOpen
-/// runs on the caller's thread (the message loop, STA: Microsoft asks for the first IAudioClient call to be made there);
-/// only the drain loop runs on the worker. Nothing survives Close, so every Dictation opens the device afresh and a
-/// changed default is picked up next time (spec: Microphone).
+/// One Listening's worth of a Source: the Default Communication Device opened in WASAPI shared mode, its capture
+/// endpoint for the Microphone and its render endpoint by loopback for Playback, the audio engine converting to 16-bit
+/// mono PCM at the requested rate, drained by a worker thread into memory until Close. TryOpen runs on the caller's
+/// thread (the message loop, STA: Microsoft asks for the first IAudioClient call to be made there); only the drain loop
+/// runs on the worker. Nothing survives Close, so every Dictation opens the device afresh and a changed default is
+/// picked up next time (spec: Microphone; Playback capture).
 internal sealed class WasapiCapture
 {
     private const ushort Channels = 1;
     private const ushort BitsPerSample = 16;
     private const ushort BlockAlign = Channels * BitsPerSample / 8;
 
+    /// The stream flags both Sources share. AUTOCONVERTPCM makes the engine matrix and resample from the device's mix
+    /// format to ours; Microsoft documents it but not with LOOPBACK, which Playback adds (spec: Playback capture).
+    private const uint SharedStreamFlags = NativeMethods.AUDCLNT_STREAMFLAGS_EVENTCALLBACK
+        | NativeMethods.AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM
+        | NativeMethods.AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY;
+
     /// The engine-side buffer in 100 ns units: half a second, so a GC pause or a busy desktop loses no packet while the
     /// worker is late. The engine still signals the event once per period, about every 10 ms.
     private const long BufferDuration = 5_000_000;
 
     /// How long the drain loop waits for a packet before re-checking the stop flag. Close also signals the event, so
-    /// this only bounds the join when the device has gone quiet.
+    /// this only bounds the join when the device has gone quiet. It also keeps a loopback stream drained on systems
+    /// where loopback never signals its event, and loopback delivers nothing at all while nothing plays.
     private const int WaitMilliseconds = 100;
 
     private static readonly StrategyBasedComWrappers ComWrappers = new();
@@ -31,20 +40,26 @@ internal sealed class WasapiCapture
     private readonly Thread _drain;
     private volatile bool _stopping;
 
-    private WasapiCapture(IAudioClient client, IAudioCaptureClient captureClient, AutoResetEvent packetReady)
+    private WasapiCapture(DictationSource source, string deviceName, IAudioClient client, IAudioCaptureClient captureClient, AutoResetEvent packetReady)
     {
+        DeviceName = deviceName;
         _client = client;
         _captureClient = captureClient;
         _packetReady = packetReady;
-        _drain = new Thread(Drain) { Name = "Microphone drain", IsBackground = true };
+        _drain = new Thread(Drain) { Name = $"{source} drain", IsBackground = true };
         _drain.SetApartmentState(ApartmentState.MTA);
     }
 
-    /// Opens the Default Communication Device at sampleRate and starts capturing. Null when there is no capture
-    /// endpoint (E_NOTFOUND), when Windows denies the microphone (E_ACCESSDENIED from Initialize) or when any other
-    /// step fails; whatever was created by then is released.
-    public static WasapiCapture? TryOpen(int sampleRate)
+    /// The endpoint's friendly name as Windows shows it in Sound settings; empty when it could not be read.
+    public string DeviceName { get; }
+
+    /// Opens the Default Communication Device's endpoint for source at sampleRate and starts capturing. Null when
+    /// there is no such endpoint (E_NOTFOUND), when Windows denies the microphone (E_ACCESSDENIED from Initialize),
+    /// when Initialize rejects the flags or the format, or when any other step fails; whatever was created by then is
+    /// released. Failing to read the device name never fails the open.
+    public static WasapiCapture? TryOpen(DictationSource source, int sampleRate)
     {
+        var (dataFlow, streamFlags) = Endpoint(source);
         IMMDeviceEnumerator? enumerator = null;
         IMMDevice? device = null;
         IAudioClient? client = null;
@@ -59,12 +74,13 @@ internal sealed class WasapiCapture
                 return null;
             }
 
-            if (Failed(enumerator.GetDefaultAudioEndpoint(NativeMethods.eCapture, NativeMethods.eCommunications, out var devicePointer)))
+            if (Failed(enumerator.GetDefaultAudioEndpoint(dataFlow, NativeMethods.eCommunications, out var devicePointer)))
             {
                 return null;
             }
 
             device = Wrap<IMMDevice>(devicePointer);
+            var deviceName = FriendlyName(device);
 
             var iid = typeof(IAudioClient).GUID;
             if (Failed(device.Activate(in iid, NativeMethods.CLSCTX_ALL, 0, out var clientPointer)))
@@ -74,12 +90,8 @@ internal sealed class WasapiCapture
 
             client = Wrap<IAudioClient>(clientPointer);
 
-            // AUTOCONVERTPCM makes the engine matrix and resample from the device's mix format to ours.
-            const uint flags = NativeMethods.AUDCLNT_STREAMFLAGS_EVENTCALLBACK
-                | NativeMethods.AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM
-                | NativeMethods.AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY;
             var format = Pcm16Mono(sampleRate);
-            if (Failed(client.Initialize(NativeMethods.AUDCLNT_SHAREMODE_SHARED, flags, BufferDuration, 0, in format, 0)))
+            if (Failed(client.Initialize(NativeMethods.AUDCLNT_SHAREMODE_SHARED, streamFlags, BufferDuration, 0, in format, 0)))
             {
                 return null;
             }
@@ -103,7 +115,7 @@ internal sealed class WasapiCapture
                 return null;
             }
 
-            var capture = new WasapiCapture(client, captureClient, packetReady);
+            var capture = new WasapiCapture(source, deviceName, client, captureClient, packetReady);
             capture._drain.Start();
             opened = true;
             return capture;
@@ -190,6 +202,45 @@ internal sealed class WasapiCapture
             {
                 return false;
             }
+        }
+    }
+
+    /// The Microphone records the capture endpoint; Playback records what the render endpoint plays, by loopback
+    /// (ADR-0005). Both open the communications role, and everything else about the stream is shared.
+    private static (int DataFlow, uint StreamFlags) Endpoint(DictationSource source) => source switch
+    {
+        DictationSource.Microphone => (NativeMethods.eCapture, SharedStreamFlags),
+        DictationSource.Playback => (NativeMethods.eRender, SharedStreamFlags | NativeMethods.AUDCLNT_STREAMFLAGS_LOOPBACK),
+        _ => throw new ArgumentOutOfRangeException(nameof(source), source, "No endpoint for this Source."),
+    };
+
+    /// PKEY_Device_FriendlyName from the device's property store, such as "Headset Earphone (Jabra Evolve2 65)"; empty
+    /// when the store cannot be opened, the value cannot be read or it is not a string.
+    private static string FriendlyName(IMMDevice device)
+    {
+        if (Failed(device.OpenPropertyStore(NativeMethods.STGM_READ, out var storePointer)))
+        {
+            return "";
+        }
+
+        var store = Wrap<IPropertyStore>(storePointer);
+        try
+        {
+            var hresult = store.GetValue(in NativeMethods.PKEY_Device_FriendlyName, out var value);
+            try
+            {
+                return !Failed(hresult) && value.Type == NativeMethods.VT_LPWSTR && value.Pointer != 0
+                    ? Marshal.PtrToStringUni(value.Pointer) ?? ""
+                    : "";
+            }
+            finally
+            {
+                _ = NativeMethods.PropVariantClear(ref value); // frees the string; a failed GetValue leaves VT_EMPTY
+            }
+        }
+        finally
+        {
+            Release(store);
         }
     }
 

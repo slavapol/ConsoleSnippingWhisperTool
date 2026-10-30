@@ -35,26 +35,31 @@ public sealed record Config
         _ => throw new ArgumentOutOfRangeException(nameof(signal), signal, null),
     };
 
-    // Dictation
+    // Dictation. dictation.hotkey and dictation.listeningTimeoutSeconds keep their names and mean the Microphone's
+    // Hotkey and cap; the model, languages, prompt and Cleanup settings apply to both Sources.
 
+    /// The Microphone Hotkey (dictation.hotkey).
     public Hotkey DictationHotkey { get; init; } = Hotkey.DictationDefault;
 
+    /// The Microphone cap (dictation.listeningTimeoutSeconds).
     public int ListeningTimeoutSeconds { get; init; } = 120;
 
     // Ten minutes of speech is well under the Service's 25 MB ceiling (about 13 minutes at 16 kHz, ADR-0004).
     private const int MinListeningTimeoutSeconds = 1;
     private const int MaxListeningTimeoutSeconds = 600;
 
-    /// The Hotkey that opens Listening on Playback and, pressed again, is its Release. Not yet read from config.json
-    /// or written by ToJson (ticket 02 of Playback Dictation).
+    /// The Hotkey that opens Listening on Playback and, pressed again, is its Release.
     public Hotkey PlaybackHotkey { get; init; } = Hotkey.PlaybackDefault;
 
-    /// The Playback cap: Listening on Playback ends by itself after this many seconds and sends what it heard. Not
-    /// yet read from config.json or written by ToJson (ticket 02 of Playback Dictation).
+    /// The Playback cap: Listening on Playback ends by itself after this many seconds and sends what it heard.
     public int PlaybackTimeoutSeconds { get; init; } = 600;
 
-    /// How a Dictation ends: false leaves the Transcript on the clipboard (Copy, the default), true pastes it into the
-    /// focused app (Insert).
+    // Ten minutes of 16 kHz mono is about 19 MB, under the Service's 25 MB ceiling (ADR-0004).
+    private const int MinPlaybackTimeoutSeconds = 1;
+    private const int MaxPlaybackTimeoutSeconds = 600;
+
+    /// How a Microphone Dictation ends: false leaves the Transcript on the clipboard (Copy, the default), true pastes it
+    /// into the focused app (Insert). A Playback Dictation always ends in Copy.
     public bool Insert { get; init; }
 
     public string TranscriptionModel { get; init; } = "gpt-transcribe";
@@ -100,6 +105,8 @@ public sealed record Config
         {
             hotkey = DictationHotkey.Text,
             listeningTimeoutSeconds = ListeningTimeoutSeconds,
+            playbackHotkey = PlaybackHotkey.Text,
+            playbackTimeoutSeconds = PlaybackTimeoutSeconds,
             insert = Insert,
             model = TranscriptionModel,
             languages = Languages,
@@ -178,6 +185,23 @@ public sealed record Config
             }
 
             var listeningTimeoutSeconds = LoadTimeout(dictation, "dictation.listeningTimeoutSeconds", MinListeningTimeoutSeconds, MaxListeningTimeoutSeconds, defaults.ListeningTimeoutSeconds, problems);
+            var playbackHotkey = LoadHotkey(dictation, "dictation.playbackHotkey", defaults.PlaybackHotkey, problems);
+            // Spec: the same rule for the Playback Hotkey, compared against the Capture Hotkey in effect and then the
+            // Microphone Hotkey in effect, each after its own fallback. A missing or invalid playbackHotkey is not
+            // compared, so a default that collides is left to fail its registration and be reported as taken.
+            var clash = playbackHotkey switch
+            {
+                { } written when SameKeys(written, hotkey) => "Capture Hotkey",
+                { } written when SameKeys(written, dictationHotkey ?? defaults.DictationHotkey) => "Microphone Hotkey",
+                _ => null,
+            };
+            if (playbackHotkey is { } playback && clash is not null)
+            {
+                problems.Add($"{FileName}: dictation.playbackHotkey {playback.Text} is the same as the {clash} in effect; using default {defaults.PlaybackHotkey.Text}");
+                playbackHotkey = null;
+            }
+
+            var playbackTimeoutSeconds = LoadTimeout(dictation, "dictation.playbackTimeoutSeconds", MinPlaybackTimeoutSeconds, MaxPlaybackTimeoutSeconds, defaults.PlaybackTimeoutSeconds, problems);
             var insert = LoadBool(dictation, "dictation.insert", defaults.Insert, problems);
             var transcriptionModel = LoadString(dictation, "dictation.model", defaults.TranscriptionModel, problems);
             var languages = LoadLanguages(dictation, "dictation.languages", defaults.Languages, problems);
@@ -195,6 +219,8 @@ public sealed record Config
                 OpenAiApiKey = openAiApiKey,
                 DictationHotkey = dictationHotkey ?? defaults.DictationHotkey,
                 ListeningTimeoutSeconds = listeningTimeoutSeconds,
+                PlaybackHotkey = playbackHotkey ?? defaults.PlaybackHotkey,
+                PlaybackTimeoutSeconds = playbackTimeoutSeconds,
                 Insert = insert,
                 TranscriptionModel = transcriptionModel,
                 Languages = languages,
@@ -263,6 +289,9 @@ public sealed record Config
         problems.Add(Invalid(path, value, "is not a valid Hotkey", fallback.Text));
         return null;
     }
+
+    /// Two Hotkeys Windows would treat as one: the same modifiers and key, whatever their Text says.
+    private static bool SameKeys(Hotkey a, Hotkey b) => a.Modifiers == b.Modifiers && a.VirtualKey == b.VirtualKey;
 
     private static int LoadTimeout(JsonElement? parent, string path, int min, int max, int fallback, List<string> problems)
     {

@@ -10,6 +10,7 @@ public sealed partial class SnipperCore
         SetUpSounds();
         RegisterHotkey();
         RegisterDictationHotkey();
+        RegisterPlaybackHotkey();
         SetUpTray();
     }
 
@@ -107,12 +108,25 @@ public sealed partial class SnipperCore
         Report(HotkeyTaken(_config.DictationHotkey));
     }
 
+    /// A taken Playback Hotkey leaves Capture and the Microphone working (spec: user story 38). The default Ctrl+Win+A
+    /// lands here too when it equals another Hotkey, because Config compares only a written playbackHotkey.
+    private void RegisterPlaybackHotkey()
+    {
+        if (_platform.RegisterPlaybackHotkey(_config.PlaybackHotkey))
+        {
+            return;
+        }
+
+        Report(HotkeyTaken(_config.PlaybackHotkey));
+    }
+
     private static string HotkeyTaken(Hotkey hotkey) =>
         $"Hotkey {hotkey.Text} is already taken by another app; edit config.json and relaunch";
 
     private void SetUpTray()
     {
-        _platform.SetTrayTooltip($"{ToolName} (capture {_config.Hotkey.Text}, dictate {_config.DictationHotkey.Text})");
+        // At most 117 characters with three of the longest Hotkeys (Ctrl+Alt+Shift+Win+F24), under the tray's 127.
+        _platform.SetTrayTooltip($"{ToolName} (capture {_config.Hotkey.Text}, dictate {_config.DictationHotkey.Text}, playback {_config.PlaybackHotkey.Text})");
         _platform.SetTrayMenuState(showEnabled: true, hideEnabled: false);
     }
 
@@ -141,7 +155,7 @@ public sealed partial class SnipperCore
         OnHide();
         _platform.UnregisterHotkey();
         _platform.UnregisterDictationHotkey();
-        _platform.UnregisterPlaybackHotkey(); // harmless while Start does not register it yet (Playback Dictation ticket 02)
+        _platform.UnregisterPlaybackHotkey();
         _platform.RemoveTrayIcon();
         _platform.Exit();
     }

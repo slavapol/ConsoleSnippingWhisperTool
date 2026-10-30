@@ -10,7 +10,8 @@ public class ConsoleTests
         "WriteConsoleLine(ConsoleSnippingTool)",
         "WriteConsoleLine(Press Ctrl+Win+Z to capture)",
         "WriteConsoleLine(Hold Ctrl+Win+X to dictate)",
-        "WriteConsoleLine(Esc or right-click cancels a capture; Esc discards a dictation)",
+        "WriteConsoleLine(Press Ctrl+Win+A to transcribe playback, again to send)",
+        "WriteConsoleLine(Esc or right-click cancels a capture; Esc discards a microphone dictation)",
         "WriteConsoleLine()",
     ];
 
@@ -48,7 +49,7 @@ public class ConsoleTests
     {
         var fake = new FakePlatform
         {
-            ConfigText = ConfigJson.With(hotkey: "Ctrl+Shift+F5", dictationHotkey: "Ctrl+Alt+D"),
+            ConfigText = ConfigJson.With(hotkey: "Ctrl+Shift+F5", dictationHotkey: "Ctrl+Alt+D", playbackHotkey: "Ctrl+Alt+M"),
             Environment = ApiKey.InEnvironment,
         };
         var core = new SnipperCore(fake);
@@ -62,7 +63,8 @@ public class ConsoleTests
             "WriteConsoleLine(ConsoleSnippingTool)",
             "WriteConsoleLine(Press Ctrl+Shift+F5 to capture)",
             "WriteConsoleLine(Hold Ctrl+Alt+D to dictate)",
-            "WriteConsoleLine(Esc or right-click cancels a capture; Esc discards a dictation)",
+            "WriteConsoleLine(Press Ctrl+Alt+M to transcribe playback, again to send)",
+            "WriteConsoleLine(Esc or right-click cancels a capture; Esc discards a microphone dictation)",
             "WriteConsoleLine()",
         ];
         Assert.Equal(expected, fake.Calls.Where(IsConsoleLine));
