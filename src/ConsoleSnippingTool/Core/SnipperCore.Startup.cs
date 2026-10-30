@@ -108,9 +108,16 @@ public sealed partial class SnipperCore
         Report(HotkeyTaken(_config.DictationHotkey));
     }
 
+    /// A taken Playback Hotkey leaves Capture and the Microphone working (spec: user story 38). The default Ctrl+Win+A
+    /// lands here too when it equals another Hotkey, because Config compares only a written playbackHotkey.
     private void RegisterPlaybackHotkey()
     {
-        _platform.RegisterPlaybackHotkey(_config.PlaybackHotkey);
+        if (_platform.RegisterPlaybackHotkey(_config.PlaybackHotkey))
+        {
+            return;
+        }
+
+        Report(HotkeyTaken(_config.PlaybackHotkey));
     }
 
     private static string HotkeyTaken(Hotkey hotkey) =>

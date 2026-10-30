@@ -132,6 +132,50 @@ public class StartupTests
     }
 
     [Fact]
+    public void A_Playback_Hotkey_another_app_owns_is_reported_with_a_balloon_while_Capture_and_the_Microphone_keep_working_and_the_tray_is_still_set_up()
+    {
+        var fake = new FakePlatform { RegisterPlaybackHotkeyResult = false, Environment = ApiKey.InEnvironment };
+        var core = new SnipperCore(fake);
+
+        core.Start();
+
+        var balloon = Assert.Single(fake.Calls, call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal));
+        Assert.Equal("ShowBalloon(ConsoleSnippingTool: Hotkey Ctrl+Win+A is already taken by another app; edit config.json and relaunch)", balloon);
+        var capture = fake.Calls.IndexOf("RegisterHotkey(Ctrl+Win+Z)");
+        var microphone = fake.Calls.IndexOf("RegisterDictationHotkey(Ctrl+Win+X)");
+        var playback = fake.Calls.IndexOf("RegisterPlaybackHotkey(Ctrl+Win+A)");
+        var tooltip = fake.Calls.FindIndex(call => call.StartsWith("SetTrayTooltip(", StringComparison.Ordinal));
+        Assert.True(capture >= 0, "the Capture Hotkey was registered");
+        Assert.True(microphone > capture, "the Microphone Hotkey was registered after the Capture one");
+        Assert.True(playback > microphone, "the Playback Hotkey is registered after the Microphone one");
+        Assert.Equal(playback + 1, fake.Calls.IndexOf(balloon));
+        Assert.True(tooltip > playback, "the tray is still set up afterwards");
+        Assert.Contains("SetTrayMenuState(showEnabled:true,hideEnabled:false)", fake.Calls);
+    }
+
+    [Fact]
+    public void A_Capture_Hotkey_set_to_Ctrl_Win_A_with_the_Playback_Hotkey_omitted_ends_as_a_taken_Playback_Hotkey()
+    {
+        // A missing playbackHotkey takes its default without a clash check, so both Hotkeys are Ctrl+Win+A; Windows
+        // refuses the second registration of the same keys (ERROR_HOTKEY_ALREADY_REGISTERED), scripted here.
+        var json = """{ "hotkey": "Ctrl+Win+A", "armedTimeoutSeconds": 30, "sounds": { "ready": null, "corner": null, "sent": null, "done": null }, "openAi": { "apiKey": null }, "dictation": { "hotkey": "Ctrl+Win+X", "listeningTimeoutSeconds": 120, "playbackTimeoutSeconds": 600, "insert": false, "model": "gpt-transcribe", "languages": ["en", "ru"], "prompt": null, "cleanup": false, "cleanupModel": "gpt-6-luna" } }""";
+        var fake = new FakePlatform { ConfigText = json, RegisterPlaybackHotkeyResult = false, Environment = ApiKey.InEnvironment };
+        var core = new SnipperCore(fake);
+
+        core.Start();
+
+        string[] expectedBalloons =
+        [
+            "ShowBalloon(ConsoleSnippingTool: config.json: dictation.playbackHotkey is missing; using default Ctrl+Win+A)",
+            "ShowBalloon(ConsoleSnippingTool: Hotkey Ctrl+Win+A is already taken by another app; edit config.json and relaunch)",
+        ];
+        Assert.Equal(expectedBalloons, fake.Calls.Where(call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal)));
+        Assert.Contains("RegisterHotkey(Ctrl+Win+A)", fake.Calls);
+        Assert.Contains("RegisterDictationHotkey(Ctrl+Win+X)", fake.Calls);
+        Assert.Contains("RegisterPlaybackHotkey(Ctrl+Win+A)", fake.Calls);
+    }
+
+    [Fact]
     public void A_signal_whose_sound_fails_to_load_falls_back_to_the_built_in_click()
     {
         var fake = new FakePlatform { SoundLoadResults = { [Signal.Done] = false } };
