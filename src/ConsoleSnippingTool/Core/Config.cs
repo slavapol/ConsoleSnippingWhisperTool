@@ -45,13 +45,15 @@ public sealed record Config
     private const int MinListeningTimeoutSeconds = 1;
     private const int MaxListeningTimeoutSeconds = 600;
 
-    /// The Hotkey that opens Listening on Playback and, pressed again, is its Release. Not yet read from config.json
-    /// or written by ToJson (ticket 02 of Playback Dictation).
+    /// The Hotkey that opens Listening on Playback and, pressed again, is its Release.
     public Hotkey PlaybackHotkey { get; init; } = Hotkey.PlaybackDefault;
 
-    /// The Playback cap: Listening on Playback ends by itself after this many seconds and sends what it heard. Not
-    /// yet read from config.json or written by ToJson (ticket 02 of Playback Dictation).
+    /// The Playback cap: Listening on Playback ends by itself after this many seconds and sends what it heard.
     public int PlaybackTimeoutSeconds { get; init; } = 600;
+
+    // Ten minutes of 16 kHz mono is about 19 MB, under the Service's 25 MB ceiling (ADR-0004).
+    private const int MinPlaybackTimeoutSeconds = 1;
+    private const int MaxPlaybackTimeoutSeconds = 600;
 
     /// How a Dictation ends: false leaves the Transcript on the clipboard (Copy, the default), true pastes it into the
     /// focused app (Insert).
@@ -180,6 +182,8 @@ public sealed record Config
             }
 
             var listeningTimeoutSeconds = LoadTimeout(dictation, "dictation.listeningTimeoutSeconds", MinListeningTimeoutSeconds, MaxListeningTimeoutSeconds, defaults.ListeningTimeoutSeconds, problems);
+            var playbackHotkey = LoadHotkey(dictation, "dictation.playbackHotkey", defaults.PlaybackHotkey, problems);
+            var playbackTimeoutSeconds = LoadTimeout(dictation, "dictation.playbackTimeoutSeconds", MinPlaybackTimeoutSeconds, MaxPlaybackTimeoutSeconds, defaults.PlaybackTimeoutSeconds, problems);
             var insert = LoadBool(dictation, "dictation.insert", defaults.Insert, problems);
             var transcriptionModel = LoadString(dictation, "dictation.model", defaults.TranscriptionModel, problems);
             var languages = LoadLanguages(dictation, "dictation.languages", defaults.Languages, problems);
@@ -197,6 +201,8 @@ public sealed record Config
                 OpenAiApiKey = openAiApiKey,
                 DictationHotkey = dictationHotkey ?? defaults.DictationHotkey,
                 ListeningTimeoutSeconds = listeningTimeoutSeconds,
+                PlaybackHotkey = playbackHotkey ?? defaults.PlaybackHotkey,
+                PlaybackTimeoutSeconds = playbackTimeoutSeconds,
                 Insert = insert,
                 TranscriptionModel = transcriptionModel,
                 Languages = languages,
