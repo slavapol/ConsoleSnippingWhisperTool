@@ -133,7 +133,7 @@ public sealed partial class SnipperCore
     /// A newer Instance asked this one to exit.
     public void OnReplaceRequested() => OnExit();
 
-    /// Whatever job is under way ends first, so a replaced or closed Instance never leaves the microphone open or
+    /// Whatever job is under way ends first, so a replaced or closed Instance never leaves a Source open or
     /// pastes after it is gone (spec: user stories 40 and 41).
     public void OnExit()
     {

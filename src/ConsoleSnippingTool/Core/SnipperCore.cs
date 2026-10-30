@@ -31,8 +31,8 @@ public sealed partial class SnipperCore
     private const string NoApiKeyMessage =
         "Dictation needs an API key: set openAi.apiKey in config.json or the OPENAI_API_KEY environment variable";
 
-    /// When the Dictation Hotkey press that led to Listening arrived, by the injected clock, taken before the microphone
-    /// is opened; the Tap threshold is measured from here (spec: Hotkey, release and Tap).
+    /// When the Dictation Hotkey press that led to Listening arrived, by the injected clock, taken before the Source is
+    /// opened; the Tap threshold is measured from here (spec: Hotkey, release and Tap).
     private DateTime _listeningSince;
 
     /// The Source of the Dictation in progress, set on entering Listening and kept through Transcribing, so the

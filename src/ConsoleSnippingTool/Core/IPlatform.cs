@@ -15,7 +15,7 @@ public interface IPlatform
     // Hotkeys
     bool RegisterHotkey(Hotkey hotkey);    // false when another app owns it
     void UnregisterHotkey();
-    void RegisterCancelKey();              // Esc, only while Armed (while Listening the keyboard hook takes Esc)
+    void RegisterCancelKey();              // Esc, only while Armed (while Listening on the Microphone the keyboard hook takes Esc)
     void UnregisterCancelKey();
     bool RegisterDictationHotkey(Hotkey hotkey); // the Microphone Hotkey; false when another app owns it
     void UnregisterDictationHotkey();

@@ -5,7 +5,7 @@ namespace ConsoleSnippingTool.Win32.OpenAi;
 /// The one HttpClient of the process (spec: Transcription request) and the step every call to the Service shares: the
 /// bearer header set per request from the key passed in, the body read as text, an error status turned into a
 /// ServiceException whose message is the failure reason. The client has no timeout of its own; each caller brings a
-/// token from its 20 s CancellationTokenSource.
+/// token from its own CancellationTokenSource: the request's Timeout, or the warm-up's fixed 20 s.
 internal static class OpenAiHttp
 {
     private static readonly HttpClient Client = new(new SocketsHttpHandler())

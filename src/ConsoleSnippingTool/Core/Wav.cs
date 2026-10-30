@@ -3,7 +3,7 @@ using System.Buffers.Binary;
 namespace ConsoleSnippingTool.Core;
 
 /// The RIFF/WAVE container around 16-bit little-endian mono PCM, written in memory. The built-in click (ClickSound) and
-/// the microphone clip the upload transport sends go through this one writer; no audio ever reaches the disk.
+/// the Dictation clip the upload transport sends go through this one writer; no audio ever reaches the disk.
 public static class Wav
 {
     /// The canonical PCM header: RIFF and WAVE tags, a 16-byte fmt chunk and the data chunk header.
