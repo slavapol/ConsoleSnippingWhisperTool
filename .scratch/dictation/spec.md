@@ -30,7 +30,7 @@ A second job in ConsoleSnippingTool, beside Capture. Holding `Ctrl+Win+X` opens 
 
 10. As a user, I want a press shorter than half a second to insert nothing, so that a stray press costs nothing.
 11. As a user, I want Esc while Listening to discard the recording silently, so that a mistaken press is harmless.
-12. As a user, I want Listening to end on its own after 120 seconds and the audio so far to be transcribed and inserted as if I had released, so that a stuck key never records forever and two minutes of speech are never lost.
+12. As a user, I want Listening to end on its own after 120 seconds and the audio so far to be transcribed and delivered as if I had released, so that a stuck key never records forever and two minutes of speech are never lost.
 13. As a user, I want the Dictation Hotkey ignored while a Capture is Armed, and the Capture Hotkey ignored while Listening or Transcribing, so that the two jobs never interleave; the missing signal tells me it did not start.
 14. As a user, I want the Dictation Hotkey ignored while the previous Transcript is still in flight, so that two Dictations never arrive out of order.
 
@@ -60,7 +60,7 @@ A second job in ConsoleSnippingTool, beside Capture. Holding `Ctrl+Win+X` opens 
 
 ### Failures
 
-30. As a user, I want a failed or slow request (no network, 401, 429, 20-second timeout) to play no Done signal and give a balloon and a Console line naming the reason, with nothing inserted, so that I am never misled into thinking text arrived.
+30. As a user, I want a failed or slow request (no network, 401, 429, 20-second timeout) to play no Done signal and give a balloon and a Console line naming the reason, with nothing delivered, so that I am never misled into thinking text arrived.
 31. As a user, I want no automatic retry, so that a bad request never doubles the wait; I can simply dictate again.
 32. As a user, I want a missing microphone reported with a balloon and a Console line when I press the Hotkey, so that I know the tool heard nothing.
 33. As a user, I want a paste that could not be sent (clipboard locked by another app, modifier keys still held after two seconds) reported with a balloon and a Console line, so that silence never means success.
