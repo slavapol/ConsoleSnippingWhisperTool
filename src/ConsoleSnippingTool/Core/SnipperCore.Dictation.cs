@@ -99,6 +99,11 @@ public sealed partial class SnipperCore
     /// A chord held for less than this is a Tap: a stray press that sends nothing (spec: Hotkey, release and Tap).
     private static readonly TimeSpan TapThreshold = TimeSpan.FromMilliseconds(500);
 
+    /// A Playback clip with less audio than this is not sent. Loopback records nothing while no app plays, but the Ready
+    /// click lands in the clip whenever the default output is also the communication one, so the clip is never quite
+    /// empty (Playback Dictation spec: user story 17). The Microphone sends every Release that is not a Tap.
+    private static readonly TimeSpan MinimumPlayback = TimeSpan.FromMilliseconds(500);
+
     /// Ends Listening and sends what was heard; Sent is the signal that the audio is on its way. The cap counts as a
     /// Release (spec: user story 12) and is never a Tap, however short it is configured.
     private void Release(bool byCap)
@@ -108,6 +113,12 @@ public sealed partial class SnipperCore
         if (!byCap && held < TapThreshold)
         {
             Log("Tap ignored");
+            return;
+        }
+
+        if (_source == DictationSource.Playback && clip.Duration < MinimumPlayback)
+        {
+            NothingHeard("Nothing heard (nothing played)");
             return;
         }
 
@@ -192,12 +203,12 @@ public sealed partial class SnipperCore
     }
 
     /// Silence or breathing: nothing to deliver, no Done, and whatever languages the Service named are not kept for
-    /// the next Dictation (spec: user story 18).
-    private void NothingHeard()
+    /// the next Dictation (spec: user story 18). A Playback clip in which nothing played says so in its line.
+    private void NothingHeard(string line = "Nothing heard")
     {
         _detectedLanguages = [];
         _state = State.Idle;
-        Log("Nothing heard");
+        Log(line);
     }
 
     /// What the Cleanup pass is told, adapted from FreeFlow (spec: Implementation Decisions, Cleanup). Verbatim.

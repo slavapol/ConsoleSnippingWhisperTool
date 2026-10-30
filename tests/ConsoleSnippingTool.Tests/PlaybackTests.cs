@@ -116,7 +116,134 @@ public class PlaybackTests
         Assert.Equal(["14:02:07 Listening (playback)"], Logged(fake, core));
     }
 
+    // Release
+
+    [Fact]
+    public void A_second_press_at_499_ms_is_a_Tap_that_closes_Playback_and_sends_nothing()
+    {
+        var (fake, core) = Listening();
+        Advance(Ms(499));
+
+        core.OnPlaybackHotkey();
+
+        Assert.Equal(["StopTimer()", "CloseSource()"], fake.Calls);
+        Assert.Equal(["14:02:07 Listening (playback: Test Device)", "14:02:07 Tap ignored"], Logged(fake, core));
+    }
+
+    [Fact]
+    public void A_second_press_at_500_ms_is_a_Release_that_sends_the_clip()
+    {
+        var (fake, core) = Listening();
+        Advance(Ms(500));
+
+        core.OnPlaybackHotkey();
+
+        string[] expected =
+        [
+            "StopTimer()",
+            "CloseSource()",
+            "PlaySound(Sent)",
+            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:21s)",
+        ];
+        Assert.Equal(expected, fake.Calls);
+    }
+
+    [Fact]
+    public void The_Playback_cap_is_a_Release_whose_log_line_says_so()
+    {
+        var (fake, core) = Listening();
+        fake.SourceClip = Audio(TimeSpan.FromSeconds(600));
+        Advance(TimeSpan.FromSeconds(600));
+
+        core.OnTimerElapsed();
+
+        string[] expected =
+        [
+            "StopTimer()",
+            "CloseSource()",
+            "PlaySound(Sent)",
+            "BeginTranscription(seq:1,clip:600s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:120s)",
+        ];
+        Assert.Equal(expected, fake.Calls);
+        Assert.Equal(["14:02:07 Listening (playback: Test Device)", "14:12:07 Sent 600.0 s of audio (cap)"], Logged(fake, core));
+    }
+
+    [Fact]
+    public void The_Playback_cap_is_never_a_Tap()
+    {
+        var (fake, core) = Listening();
+        Advance(Ms(400));
+
+        core.OnTimerElapsed();
+
+        Assert.Contains("PlaySound(Sent)", fake.Calls);
+        Assert.Equal("14:02:07 Sent 3.0 s of audio (cap)", Logged(fake, core)[^1]);
+    }
+
+    // Nothing played
+
+    [Fact]
+    public void A_Release_with_499_ms_of_audio_sends_nothing_plays_no_Sent_and_logs_Nothing_heard_nothing_played_and_the_next_press_listens_again()
+    {
+        var (fake, core) = Listening();
+        fake.SourceClip = Audio(Ms(499));
+        Advance(TimeSpan.FromSeconds(3));
+
+        core.OnPlaybackHotkey();
+
+        Assert.Equal(["StopTimer()", "CloseSource()"], fake.Calls);
+        fake.Calls.Clear();
+        core.OnPlaybackHotkey();
+        Assert.Contains("PlaySound(Ready)", fake.Calls);
+        string[] expectedLog =
+        [
+            "14:02:07 Listening (playback: Test Device)",
+            "14:02:10 Nothing heard (nothing played)",
+            "14:02:10 Listening (playback: Test Device)",
+        ];
+        Assert.Equal(expectedLog, Logged(fake, core));
+    }
+
+    [Fact]
+    public void A_Release_with_500_ms_of_audio_is_sent()
+    {
+        var (fake, core) = Listening();
+        fake.SourceClip = Audio(Ms(500));
+        Advance(TimeSpan.FromSeconds(3));
+
+        core.OnPlaybackHotkey();
+
+        Assert.Contains("PlaySound(Sent)", fake.Calls);
+        Assert.Contains("BeginTranscription(seq:1,clip:0.5s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:21s)", fake.Calls);
+        Assert.Equal("14:02:10 Sent 0.5 s of audio", Logged(fake, core)[^1]);
+    }
+
+    [Fact]
+    public void The_cap_with_under_500_ms_of_audio_is_Nothing_heard_too()
+    {
+        var (fake, core) = Listening();
+        fake.SourceClip = Audio(Ms(30)); // the Ready click alone
+        Advance(TimeSpan.FromSeconds(600));
+
+        core.OnTimerElapsed();
+
+        Assert.Equal(["StopTimer()", "CloseSource()"], fake.Calls);
+        Assert.Equal("14:12:07 Nothing heard (nothing played)", Logged(fake, core)[^1]);
+    }
+
     // Helpers
+
+    /// That much 16 kHz audio, to the millisecond, as CloseSource returns it.
+    private static AudioClip Audio(TimeSpan length) => new(new byte[(int)length.TotalMilliseconds * 16 * 2], 16000);
+
+    /// A started Instance that has just entered Listening on the Playback Hotkey, with the entry calls cleared away.
+    private (FakePlatform Fake, SnipperCore Core) Listening()
+    {
+        var (fake, core) = Started();
+        core.OnPlaybackHotkey();
+        fake.Calls.Clear();
+        return (fake, core);
+    }
 
     /// A started Instance with an API key, Idle, with the startup calls cleared away.
     private (FakePlatform Fake, SnipperCore Core) Started(FakePlatform? fake = null)

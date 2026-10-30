@@ -182,6 +182,20 @@ public class DictationTests
     }
 
     [Fact]
+    public void A_Release_with_under_half_a_second_of_microphone_audio_is_still_sent()
+    {
+        // Only Playback drops a near-empty clip; the Microphone sends every Release that is not a Tap.
+        var (fake, core) = Listening();
+        fake.SourceClip = new AudioClip(new byte[(int)(0.3 * 16000) * 2], 16000);
+        Advance(TimeSpan.FromSeconds(3));
+
+        core.OnDictationKeyUp();
+
+        Assert.Contains("PlaySound(Sent)", fake.Calls);
+        Assert.Contains("BeginTranscription(seq:1,clip:0.3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:21s)", fake.Calls);
+    }
+
+    [Fact]
     public void The_hold_is_timed_from_the_press_so_a_slow_microphone_open_never_turns_a_held_chord_into_a_Tap()
     {
         // The device takes 300 ms to open and the user holds the chord for 600 ms in all: a Release, not a Tap.
