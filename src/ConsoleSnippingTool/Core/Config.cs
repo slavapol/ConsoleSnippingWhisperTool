@@ -143,7 +143,7 @@ public sealed record Config
             var problems = new List<string>();
             var hotkey = LoadHotkey(root, "hotkey", defaults.Hotkey, problems) ?? defaults.Hotkey;
             var armedTimeoutSeconds = LoadTimeout(root, "armedTimeoutSeconds", MinArmedTimeoutSeconds, MaxArmedTimeoutSeconds, defaults.ArmedTimeoutSeconds, problems);
-            var sounds = LoadSounds(root, problems);
+            var sounds = LoadObject(root, "sounds", problems, fallback: BuiltInClick);
             var readySound = LoadSound(sounds, "sounds.ready", defaults.ReadySound, problems);
             var cornerSound = LoadSound(sounds, "sounds.corner", defaults.CornerSound, problems);
             var sentSound = LoadSound(sounds, "sounds.sent", defaults.SentSound, problems);
@@ -209,12 +209,14 @@ public sealed record Config
         return null;
     }
 
-    /// The object at path, or null (with one problem for the whole object) when it is missing or not an object.
-    private static JsonElement? LoadObject(JsonElement root, string path, List<string> problems)
+    /// The object at path, or null (with one problem for the whole object) when it is missing or not an object. The
+    /// problem says what its fields take: their several defaults, or the one fallback they share (the sounds' click).
+    private static JsonElement? LoadObject(JsonElement root, string path, List<string> problems, string? fallback = null)
     {
+        var taken = fallback is null ? "defaults" : $"default {fallback}";
         if (!root.TryGetProperty(path, out var value))
         {
-            problems.Add($"{FileName}: {path} is missing; using defaults");
+            problems.Add($"{FileName}: {path} is missing; using {taken}");
             return null;
         }
 
@@ -223,7 +225,7 @@ public sealed record Config
             return value;
         }
 
-        problems.Add($"{FileName}: {path} {value.GetRawText()} is not an object; using defaults");
+        problems.Add($"{FileName}: {path} {value.GetRawText()} is not an object; using {taken}");
         return null;
     }
 
@@ -258,25 +260,6 @@ public sealed record Config
 
         problems.Add(Invalid(path, value, $"is not an integer from {min} to {max}", fallback.ToString()));
         return fallback;
-    }
-
-    /// The "sounds" object, or null (with one problem) when it is missing or not an object.
-    private static JsonElement? LoadSounds(JsonElement root, List<string> problems)
-    {
-        const string field = "sounds";
-        if (!root.TryGetProperty(field, out var value))
-        {
-            problems.Add(Missing(field, BuiltInClick));
-            return null;
-        }
-
-        if (value.ValueKind == JsonValueKind.Object)
-        {
-            return value;
-        }
-
-        problems.Add(Invalid(field, value, "is not an object", BuiltInClick));
-        return null;
     }
 
     private static SoundSource LoadSound(JsonElement? sounds, string path, SoundSource fallback, List<string> problems)
