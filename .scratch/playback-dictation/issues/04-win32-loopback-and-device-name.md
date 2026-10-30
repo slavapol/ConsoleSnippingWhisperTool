@@ -1,6 +1,6 @@
 # 04 Win32 loopback capture and device name
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 01
 
 Spec: `.scratch/playback-dictation/spec.md` → Playback capture; ADR-0005; user stories 7, 8, 25 to 28. Prior art: `.scratch/dictation/issues/05-win32-wasapi-microphone.md` and the existing WASAPI capture in the adapter's Audio folder.
@@ -57,3 +57,5 @@ Spec: `.scratch/playback-dictation/spec.md` → Playback capture; ADR-0005; user
 
 1. The device name is a `DeviceName` property on the capture, not an `out` parameter of `TryOpen`.
 2. `OpenPropertyStore` became `[PreserveSig]` so that a failure is a value, as for every method already called.
+
+- Resolved: branch tip 542ad88 fast-forwarded onto integration/playback-dictation; build 0 warnings, 203 tests green on integration. The 0.44 s click clip moved the spec's "nothing played" threshold from 500 ms to 1 s (spec and ticket 03 updated).
