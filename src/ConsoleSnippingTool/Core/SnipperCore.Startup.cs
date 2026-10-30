@@ -141,6 +141,7 @@ public sealed partial class SnipperCore
         OnHide();
         _platform.UnregisterHotkey();
         _platform.UnregisterDictationHotkey();
+        _platform.UnregisterPlaybackHotkey(); // harmless while Start does not register it yet (Playback Dictation ticket 02)
         _platform.RemoveTrayIcon();
         _platform.Exit();
     }

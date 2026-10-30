@@ -630,6 +630,7 @@ public class DictationTests
             "CloseSource()",
             "UnregisterHotkey()",
             "UnregisterDictationHotkey()",
+            "UnregisterPlaybackHotkey()",
             "RemoveTrayIcon()",
             "Exit()",
         ];
@@ -645,7 +646,7 @@ public class DictationTests
         core.OnExit();
         core.OnTranscript(1, "words after the tool closed", []);
 
-        string[] expected = ["UnregisterHotkey()", "UnregisterDictationHotkey()", "RemoveTrayIcon()", "Exit()"];
+        string[] expected = ["UnregisterHotkey()", "UnregisterDictationHotkey()", "UnregisterPlaybackHotkey()", "RemoveTrayIcon()", "Exit()"];
         Assert.Equal(expected, fake.Calls);
         Assert.Equal(["09:05:07 Listening (microphone: Test Device)", "09:05:10 Sent 3.0 s of audio", "09:05:10 Dictation abandoned (exit)"], Logged(fake, core));
     }

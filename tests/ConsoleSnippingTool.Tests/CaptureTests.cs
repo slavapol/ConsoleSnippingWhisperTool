@@ -169,6 +169,7 @@ public class CaptureTests
             "StopTimer()",
             "UnregisterHotkey()",
             "UnregisterDictationHotkey()",
+            "UnregisterPlaybackHotkey()",
             "RemoveTrayIcon()",
             "Exit()",
         ];

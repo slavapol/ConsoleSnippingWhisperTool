@@ -151,7 +151,7 @@ public class StartupTests
     }
 
     [Fact]
-    public void Exit_while_Idle_releases_both_Hotkeys_removes_the_tray_icon_and_stops_in_that_order()
+    public void Exit_while_Idle_releases_every_Hotkey_removes_the_tray_icon_and_stops_in_that_order()
     {
         var fake = new FakePlatform();
         var core = new SnipperCore(fake);
@@ -160,7 +160,7 @@ public class StartupTests
 
         core.OnExit();
 
-        string[] expected = ["UnregisterHotkey()", "UnregisterDictationHotkey()", "RemoveTrayIcon()", "Exit()"];
+        string[] expected = ["UnregisterHotkey()", "UnregisterDictationHotkey()", "UnregisterPlaybackHotkey()", "RemoveTrayIcon()", "Exit()"];
         Assert.Equal(expected, fake.Calls);
     }
 
@@ -174,7 +174,7 @@ public class StartupTests
 
         core.OnReplaceRequested();
 
-        string[] expected = ["UnregisterHotkey()", "UnregisterDictationHotkey()", "RemoveTrayIcon()", "Exit()"];
+        string[] expected = ["UnregisterHotkey()", "UnregisterDictationHotkey()", "UnregisterPlaybackHotkey()", "RemoveTrayIcon()", "Exit()"];
         Assert.Equal(expected, fake.Calls);
     }
 
