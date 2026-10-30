@@ -31,6 +31,26 @@ public class OpenAiJsonTests
     }
 
     [Fact]
+    public void A_languages_entry_that_is_a_plain_string_is_a_detected_language_as_an_object_with_a_code_is()
+    {
+        var (_, languages) = OpenAiJson.ParseTranscript("""{"text":"hello, привет","languages":["en",{"code":"ru"}]}""");
+
+        Assert.Equal(["en", "ru"], languages);
+    }
+
+    [Theory]
+    [InlineData("""{"text":"hello","languages":"en"}""")]
+    [InlineData("""{"text":"hello","languages":{"code":"en"}}""")]
+    [InlineData("""{"text":"hello","languages":[1,{"name":"en"},"",null]}""")]
+    public void A_languages_field_or_entry_of_any_other_shape_is_no_detected_language_and_never_a_failed_Dictation(string response)
+    {
+        var (text, languages) = OpenAiJson.ParseTranscript(response);
+
+        Assert.Equal("hello", text);
+        Assert.Empty(languages);
+    }
+
+    [Fact]
     public void A_transcription_response_without_text_is_malformed_and_the_message_is_the_failure_reason()
     {
         var malformed = Assert.Throws<FormatException>(() => OpenAiJson.ParseTranscript("""{"languages":[]}"""));
