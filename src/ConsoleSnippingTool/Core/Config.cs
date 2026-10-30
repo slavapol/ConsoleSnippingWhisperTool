@@ -183,6 +183,12 @@ public sealed record Config
 
             var listeningTimeoutSeconds = LoadTimeout(dictation, "dictation.listeningTimeoutSeconds", MinListeningTimeoutSeconds, MaxListeningTimeoutSeconds, defaults.ListeningTimeoutSeconds, problems);
             var playbackHotkey = LoadHotkey(dictation, "dictation.playbackHotkey", defaults.PlaybackHotkey, problems);
+            if (playbackHotkey is { } playback && SameKeys(playback, dictationHotkey ?? defaults.DictationHotkey))
+            {
+                problems.Add($"{FileName}: dictation.playbackHotkey {playback.Text} is the same as the Microphone Hotkey in effect; using default {defaults.PlaybackHotkey.Text}");
+                playbackHotkey = null;
+            }
+
             var playbackTimeoutSeconds = LoadTimeout(dictation, "dictation.playbackTimeoutSeconds", MinPlaybackTimeoutSeconds, MaxPlaybackTimeoutSeconds, defaults.PlaybackTimeoutSeconds, problems);
             var insert = LoadBool(dictation, "dictation.insert", defaults.Insert, problems);
             var transcriptionModel = LoadString(dictation, "dictation.model", defaults.TranscriptionModel, problems);
@@ -271,6 +277,9 @@ public sealed record Config
         problems.Add(Invalid(path, value, "is not a valid Hotkey", fallback.Text));
         return null;
     }
+
+    /// Two Hotkeys Windows would treat as one: the same modifiers and key, whatever their Text says.
+    private static bool SameKeys(Hotkey a, Hotkey b) => a.Modifiers == b.Modifiers && a.VirtualKey == b.VirtualKey;
 
     private static int LoadTimeout(JsonElement? parent, string path, int min, int max, int fallback, List<string> problems)
     {

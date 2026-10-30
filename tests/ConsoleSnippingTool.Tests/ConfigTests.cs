@@ -411,6 +411,40 @@ public class ConfigTests
     }
 
     [Fact]
+    public void A_Playback_Hotkey_equal_to_the_Microphone_Hotkey_is_reported_once_and_falls_back_to_its_default()
+    {
+        var (config, problems) = Config.Load(ConfigJson.With(dictationHotkey: "Ctrl+Alt+D", playbackHotkey: "ctrl+alt+d"));
+
+        Assert.Equal(["config.json: dictation.playbackHotkey Ctrl+Alt+D is the same as the Microphone Hotkey in effect; using default Ctrl+Win+A"], problems);
+        Assert.Equal("Ctrl+Alt+D", config.DictationHotkey.Text);
+        Assert.Equal(Hotkey.PlaybackDefault, config.PlaybackHotkey);
+    }
+
+    /// The Microphone Hotkey in effect is the one after its own fallback: an invalid one, or one reset because it
+    /// equals the Capture Hotkey, is Ctrl+Win+X, and a Playback Hotkey written as Ctrl+Win+X clashes with it.
+    public static TheoryData<string, string> MicrophoneHotkeysFallenBackToTheirDefault => new()
+    {
+        { ConfigJson.With(dictationHotkey: "Ctrl+Home", playbackHotkey: "Ctrl+Win+X"), "config.json: dictation.hotkey \"Ctrl+Home\" is not a valid Hotkey; using default Ctrl+Win+X" },
+        { ConfigJson.With(hotkey: "Ctrl+Alt+D", dictationHotkey: "Ctrl+Alt+D", playbackHotkey: "Ctrl+Win+X"), "config.json: dictation.hotkey Ctrl+Alt+D is the same as the Capture Hotkey in effect; using default Ctrl+Win+X" },
+    };
+
+    [Theory]
+    [MemberData(nameof(MicrophoneHotkeysFallenBackToTheirDefault))]
+    public void The_Playback_clash_rule_compares_against_the_Microphone_Hotkey_in_effect_so_one_fallen_back_to_its_default_still_clashes(string json, string microphoneProblem)
+    {
+        var (config, problems) = Config.Load(json);
+
+        string[] expected =
+        [
+            microphoneProblem,
+            "config.json: dictation.playbackHotkey Ctrl+Win+X is the same as the Microphone Hotkey in effect; using default Ctrl+Win+A",
+        ];
+        Assert.Equal(expected, problems);
+        Assert.Equal(Hotkey.DictationDefault, config.DictationHotkey);
+        Assert.Equal(Hotkey.PlaybackDefault, config.PlaybackHotkey);
+    }
+
+    [Fact]
     public void A_Sent_signal_set_to_none_is_silenced()
     {
         var fake = new FakePlatform { ConfigText = ConfigJson.With(sent: "\"none\""), Environment = ApiKey.InEnvironment };
