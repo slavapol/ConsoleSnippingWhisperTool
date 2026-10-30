@@ -14,6 +14,42 @@ public class PlaybackTests
 
     private static TimeSpan Ms(int milliseconds) => TimeSpan.FromMilliseconds(milliseconds);
 
+    // The whole story
+
+    [Fact]
+    public void A_Playback_Dictation_is_Ready_on_the_first_press_Sent_on_the_second_and_Done_once_the_Transcript_is_on_the_clipboard_with_one_log_line_per_event()
+    {
+        var (fake, core) = Started();
+
+        core.OnPlaybackHotkey();
+        Advance(TimeSpan.FromSeconds(3));
+        core.OnPlaybackHotkey();
+        Advance(Ms(900));
+        core.OnTranscript(1, "we ship on Friday", ["en"]);
+
+        string[] expected =
+        [
+            "TryOpenSource(Playback)",
+            "StartTimer(600s)",
+            "WarmUpService()",
+            "PlaySound(Ready)",
+            "StopTimer()",
+            "CloseSource()",
+            "PlaySound(Sent)",
+            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:21s)",
+            "TryCopyText(we ship on Friday)",
+            "PlaySound(Done)",
+        ];
+        Assert.Equal(expected, fake.Calls);
+        string[] expectedLog =
+        [
+            "14:02:07 Listening (playback: Test Device)",
+            "14:02:10 Sent 3.0 s of audio",
+            "14:02:10 Copied 17 chars in 0.9 s [en]: we ship on Friday",
+        ];
+        Assert.Equal(expectedLog, Logged(fake, core));
+    }
+
     // Listening
 
     [Fact]

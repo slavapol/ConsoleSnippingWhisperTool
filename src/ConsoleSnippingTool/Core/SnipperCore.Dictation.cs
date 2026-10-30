@@ -43,6 +43,9 @@ public sealed partial class SnipperCore
             case State.Idle:
                 StartListening(DictationSource.Playback);
                 break;
+            case State.Listening when _source == DictationSource.Playback:
+                Release(byCap: false);
+                break;
         }
     }
 
@@ -144,11 +147,15 @@ public sealed partial class SnipperCore
     /// by the time a request is built.
     private string ApiKey => _apiKey ?? throw new InvalidOperationException("Dictation without an API key");
 
-    /// Stops reading the user's speech: hook off (and with it Esc), cap stopped, microphone closed. The tail of every
-    /// Release and Discard; the clip is what the microphone heard.
+    /// Stops reading the Source: the Microphone's hook off (and with it Esc), cap stopped, device closed. The tail of
+    /// every Release and Discard; the clip is what the Source heard. Playback installed no hook, so it removes none.
     private AudioClip StopListening()
     {
-        _platform.RemoveKeyboardHook();
+        if (_source == DictationSource.Microphone)
+        {
+            _platform.RemoveKeyboardHook();
+        }
+
         _platform.StopTimer();
         var clip = _platform.CloseSource();
         _state = State.Idle;
