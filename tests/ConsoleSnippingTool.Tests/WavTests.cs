@@ -13,7 +13,7 @@ public class WavTests
     {
         byte[] pcm16 = [0x01, 0x00, 0xFF, 0xFF, 0x00, 0x80, 0xFF, 0x7F];
 
-        var bytes = Wav.FromPcm16(pcm16, 16000, channels: 1);
+        var bytes = Wav.FromPcm16(pcm16, 16000);
 
         Assert.Equal(52, bytes.Length);
         Assert.Equal("RIFF", Ascii(bytes, 0));
@@ -35,22 +35,11 @@ public class WavTests
     [Fact]
     public void An_empty_buffer_gives_a_44_byte_file_with_a_36_byte_RIFF_body_and_no_data()
     {
-        var bytes = Wav.FromPcm16([], 16000, channels: 1);
+        var bytes = Wav.FromPcm16([], 16000);
 
         Assert.Equal(44, bytes.Length);
         Assert.Equal(36, Int32At(bytes, 4));
         Assert.Equal(0, Int32At(bytes, 40));
-    }
-
-    [Fact]
-    public void Stereo_at_44100_Hz_declares_two_channels_a_4_byte_block_and_176400_bytes_per_second()
-    {
-        var bytes = Wav.FromPcm16(new byte[8], 44100, channels: 2);
-
-        Assert.Equal(2, Int16At(bytes, 22));
-        Assert.Equal(44100, Int32At(bytes, 24));
-        Assert.Equal(176400, Int32At(bytes, 28));
-        Assert.Equal(4, Int16At(bytes, 32));
     }
 
     // The click is 30 ms at 44.1 kHz: 1323 samples, so 44 + 2646 bytes. Pinned so the shared writer cannot change it.

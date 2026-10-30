@@ -7,7 +7,6 @@ namespace ConsoleSnippingTool.Core;
 public static class ClickSound
 {
     public const int SampleRate = 44100;
-    private const short Channels = 1;
 
     /// A complete RIFF/WAVE file: 16-bit mono PCM at 44.1 kHz, written by the shared <see cref="Core.Wav"/> writer.
     public static byte[] Wav()
@@ -19,7 +18,7 @@ public static class ClickSound
             BinaryPrimitives.WriteInt16LittleEndian(pcm16.AsSpan(i * sizeof(short)), samples[i]);
         }
 
-        return Core.Wav.FromPcm16(pcm16, SampleRate, Channels);
+        return Core.Wav.FromPcm16(pcm16, SampleRate);
     }
 
     // A key-like click: white noise under a fast exponential decay, loud enough to notice and gone before it annoys.

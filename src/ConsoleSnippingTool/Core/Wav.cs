@@ -2,8 +2,8 @@ using System.Buffers.Binary;
 
 namespace ConsoleSnippingTool.Core;
 
-/// The RIFF/WAVE container around 16-bit little-endian PCM, written in memory. The built-in click (ClickSound) and the
-/// microphone clip the upload transport sends go through this one writer; no audio ever reaches the disk.
+/// The RIFF/WAVE container around 16-bit little-endian mono PCM, written in memory. The built-in click (ClickSound) and
+/// the microphone clip the upload transport sends go through this one writer; no audio ever reaches the disk.
 public static class Wav
 {
     /// The canonical PCM header: RIFF and WAVE tags, a 16-byte fmt chunk and the data chunk header.
@@ -12,10 +12,13 @@ public static class Wav
     private const short FormatPcm = 1;
     private const short BitsPerSample = 16;
 
-    /// A complete WAV file for the given samples, as a player or the Service would read it.
-    public static byte[] FromPcm16(byte[] pcm16, int sampleRate, short channels)
+    /// Mono by contract: the click is synthesised as one channel and AudioClip holds one, so the fmt chunk always says 1.
+    private const short Channels = 1;
+
+    /// A complete WAV file for the given mono samples, as a player or the Service would read it.
+    public static byte[] FromPcm16(byte[] pcm16, int sampleRate)
     {
-        var blockAlign = (short)(channels * BitsPerSample / 8);
+        var blockAlign = (short)(Channels * BitsPerSample / 8);
         var bytes = new byte[HeaderLength + pcm16.Length];
         var header = bytes.AsSpan(0, HeaderLength);
 
@@ -26,7 +29,7 @@ public static class Wav
         "fmt "u8.CopyTo(header[12..]);
         BinaryPrimitives.WriteInt32LittleEndian(header[16..], 16);
         BinaryPrimitives.WriteInt16LittleEndian(header[20..], FormatPcm);
-        BinaryPrimitives.WriteInt16LittleEndian(header[22..], channels);
+        BinaryPrimitives.WriteInt16LittleEndian(header[22..], Channels);
         BinaryPrimitives.WriteInt32LittleEndian(header[24..], sampleRate);
         BinaryPrimitives.WriteInt32LittleEndian(header[28..], sampleRate * blockAlign);
         BinaryPrimitives.WriteInt16LittleEndian(header[32..], blockAlign);
