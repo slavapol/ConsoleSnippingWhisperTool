@@ -47,6 +47,10 @@ public sealed partial class SnipperCore
     /// When the Release sent the audio; the wait the delivery log line reports is measured from here.
     private DateTime _sentAt;
 
+    /// The timeout computed from the clip at the Release, kept so the Cleanup request of the same Dictation carries
+    /// the same one (Playback Dictation spec: user story 30).
+    private TimeSpan _requestTimeout;
+
     /// The Transcript as the Service returned it, kept while a Cleanup is in flight so a failed Cleanup can still
     /// deliver what was said (spec: user story 20).
     private string? _rawTranscript;

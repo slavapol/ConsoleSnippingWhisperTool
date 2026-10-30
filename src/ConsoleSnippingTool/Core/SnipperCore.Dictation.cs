@@ -110,6 +110,7 @@ public sealed partial class SnipperCore
 
         _dictationSequence++;
         _sentAt = _clock();
+        _requestTimeout = RequestTimeoutFor(clip);
         _platform.PlaySound(Signal.Sent);
         _platform.BeginTranscription(_dictationSequence, clip, BuildTranscriptionRequest());
         _state = State.Transcribing;
@@ -131,12 +132,13 @@ public sealed partial class SnipperCore
         });
     }
 
-    /// The timeout both requests of a Dictation carry. Fixed for now; ticket 03 of Playback Dictation replaces it with
-    /// the spec's length-based formula (Requests and their timeout).
-    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(20);
+    /// How long both requests of a Dictation may run: 20 s plus 10 s per minute of audio, rounded up to a whole second,
+    /// so 3 s of audio waits 21 s and ten minutes wait 120 s (Playback Dictation spec: Requests and their timeout).
+    private static TimeSpan RequestTimeoutFor(AudioClip clip) =>
+        TimeSpan.FromSeconds(Math.Ceiling(20 + clip.Duration.TotalSeconds / 6));
 
     private TranscriptionRequest BuildTranscriptionRequest() =>
-        new(ApiKey, _config.TranscriptionModel, _config.Languages, _config.Prompt, RequestTimeout);
+        new(ApiKey, _config.TranscriptionModel, _config.Languages, _config.Prompt, _requestTimeout);
 
     /// The key Listening was entered with; a Dictation never gets past the Hotkey without one, so it is never missing
     /// by the time a request is built.
@@ -179,7 +181,7 @@ public sealed partial class SnipperCore
         }
 
         _rawTranscript = text;
-        _platform.BeginCleanup(sequence, text, new CleanupRequest(ApiKey, _config.CleanupModel, CleanupInstructions, RequestTimeout));
+        _platform.BeginCleanup(sequence, text, new CleanupRequest(ApiKey, _config.CleanupModel, CleanupInstructions, _requestTimeout));
     }
 
     /// Silence or breathing: nothing to deliver, no Done, and whatever languages the Service named are not kept for
