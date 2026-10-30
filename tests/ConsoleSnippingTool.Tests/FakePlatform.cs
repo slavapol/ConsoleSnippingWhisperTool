@@ -15,8 +15,8 @@ namespace ConsoleSnippingTool.Tests;
 //   Timer            StartTimer(30s)  StopTimer()
 //   Capture          InstallMouseHook()  RemoveMouseHook()  TryCaptureToClipboard(5,10,6x11)
 //   Dictation        InstallKeyboardHook(Ctrl+Win+X)  RemoveKeyboardHook()  TryOpenMicrophone()  CloseMicrophone()  WarmUpService()
-//                    BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null)
-//                    BeginCleanup(seq:1,model:gpt-6-luna,transcript:<text verbatim>)  TryCopyText(<text verbatim>)
+//                    BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:20s)
+//                    BeginCleanup(seq:1,model:gpt-6-luna,timeout:20s,transcript:<text verbatim>)  TryCopyText(<text verbatim>)
 //                    TryInsertText(<text verbatim>)  ReadEnvironmentVariable(OPENAI_API_KEY)
 //   Sounds           TrySetSound(Ready,BuiltIn)  TrySetSound(Done,None)  TrySetSound(Ready,File(click.wav))  PlaySound(Done)
 //   Console          ShowConsole()  HideConsole()  WriteConsoleLine(<line verbatim>)
@@ -186,13 +186,13 @@ public sealed class FakePlatform : IPlatform
 
     public void BeginTranscription(int sequence, AudioClip clip, TranscriptionRequest request)
     {
-        Record($"BeginTranscription(seq:{sequence},clip:{Seconds(clip.Duration)},model:{request.Model},languages:{Codes(request.Languages)},prompt:{Text(request.Prompt)})");
+        Record($"BeginTranscription(seq:{sequence},clip:{Seconds(clip.Duration)},model:{request.Model},languages:{Codes(request.Languages)},prompt:{Text(request.Prompt)},timeout:{Seconds(request.Timeout)})");
         LastTranscriptionRequest = request;
     }
 
     public void BeginCleanup(int sequence, string transcript, CleanupRequest request)
     {
-        Record($"BeginCleanup(seq:{sequence},model:{request.Model},transcript:{transcript})");
+        Record($"BeginCleanup(seq:{sequence},model:{request.Model},timeout:{Seconds(request.Timeout)},transcript:{transcript})");
         LastCleanupRequest = request;
     }
 

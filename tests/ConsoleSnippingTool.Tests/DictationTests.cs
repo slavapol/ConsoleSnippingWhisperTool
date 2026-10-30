@@ -38,7 +38,7 @@ public class DictationTests
             "StopTimer()",
             "CloseMicrophone()",
             "PlaySound(Sent)",
-            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null)",
+            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:20s)",
             "TryCopyText(hello world)",
             "PlaySound(Done)",
         ];
@@ -126,7 +126,7 @@ public class DictationTests
             "StopTimer()",
             "CloseMicrophone()",
             "PlaySound(Sent)",
-            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null)",
+            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:20s)",
         ];
         Assert.Equal(expected, fake.Calls);
         Assert.Equal(["09:05:07 Listening", "09:05:10 Sent 3.0 s of audio"], Logged(fake, core));
@@ -154,7 +154,7 @@ public class DictationTests
         core.OnDictationKeyUp();
 
         Assert.Contains("PlaySound(Sent)", fake.Calls);
-        Assert.Contains("BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null)", fake.Calls);
+        Assert.Contains("BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:20s)", fake.Calls);
     }
 
     [Fact]
@@ -178,7 +178,7 @@ public class DictationTests
             "StopTimer()",
             "CloseMicrophone()",
             "PlaySound(Sent)",
-            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null)",
+            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:20s)",
         ];
         Assert.Equal(expected, fake.Calls);
         Assert.DoesNotContain("09:05:07 Tap ignored", Logged(fake, core));
@@ -199,7 +199,7 @@ public class DictationTests
             "StopTimer()",
             "CloseMicrophone()",
             "PlaySound(Sent)",
-            "BeginTranscription(seq:1,clip:120s,model:gpt-transcribe,languages:en|ru,prompt:null)",
+            "BeginTranscription(seq:1,clip:120s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:20s)",
         ];
         Assert.Equal(expected, fake.Calls);
         Assert.Equal(["09:05:07 Listening", "09:07:07 Sent 120.0 s of audio (cap)"], Logged(fake, core));
@@ -221,7 +221,7 @@ public class DictationTests
         core.OnTimerElapsed();
 
         Assert.Contains("PlaySound(Sent)", fake.Calls);
-        Assert.Contains("BeginTranscription(seq:1,clip:0.4s,model:gpt-transcribe,languages:en|ru,prompt:null)", fake.Calls);
+        Assert.Contains("BeginTranscription(seq:1,clip:0.4s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:20s)", fake.Calls);
     }
 
     // Discard
@@ -467,7 +467,7 @@ public class DictationTests
 
         core.OnTranscript(1, "um so hello hello world", ["en"]);
 
-        Assert.Equal(["BeginCleanup(seq:1,model:gpt-6-luna,transcript:um so hello hello world)"], fake.Calls);
+        Assert.Equal(["BeginCleanup(seq:1,model:gpt-6-luna,timeout:20s,transcript:um so hello hello world)"], fake.Calls);
         Assert.Equal(CleanupInstructions, fake.LastCleanupRequest?.Instructions);
         Assert.Equal(ApiKey.Value, fake.LastCleanupRequest?.ApiKey);
         fake.Calls.Clear();
@@ -552,7 +552,7 @@ public class DictationTests
 
         core.OnDictationKeyUp();
 
-        Assert.Contains("BeginTranscription(seq:2,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null)", fake.Calls);
+        Assert.Contains("BeginTranscription(seq:2,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:20s)", fake.Calls);
     }
 
     [Fact]
@@ -643,7 +643,7 @@ public class DictationTests
         core.OnTranscript(1, "deploy to kubernetes", []);
         core.OnShow();
 
-        Assert.Contains("BeginTranscription(seq:1,clip:3s,model:gpt-transcribe-2,languages:en|de,prompt:ACME, Kubernetes)", fake.Calls);
+        Assert.Contains("BeginTranscription(seq:1,clip:3s,model:gpt-transcribe-2,languages:en|de,prompt:ACME, Kubernetes,timeout:20s)", fake.Calls);
         var request = Assert.IsType<TranscriptionRequest>(fake.LastTranscriptionRequest);
         Assert.Equal(ApiKey.Value, request.ApiKey);
         Assert.Equal("gpt-transcribe-2", request.Model);
@@ -662,7 +662,7 @@ public class DictationTests
 
         core.OnDictationKeyUp();
 
-        Assert.Contains("BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:none,prompt:null)", fake.Calls);
+        Assert.Contains("BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:none,prompt:null,timeout:20s)", fake.Calls);
         Assert.Empty(fake.LastTranscriptionRequest!.Languages);
     }
 
