@@ -35,10 +35,13 @@ public sealed record Config
         _ => throw new ArgumentOutOfRangeException(nameof(signal), signal, null),
     };
 
-    // Dictation
+    // Dictation. dictation.hotkey and dictation.listeningTimeoutSeconds keep their names and mean the Microphone's
+    // Hotkey and cap; the model, languages, prompt and Cleanup settings apply to both Sources.
 
+    /// The Microphone Hotkey (dictation.hotkey).
     public Hotkey DictationHotkey { get; init; } = Hotkey.DictationDefault;
 
+    /// The Microphone cap (dictation.listeningTimeoutSeconds).
     public int ListeningTimeoutSeconds { get; init; } = 120;
 
     // Ten minutes of speech is well under the Service's 25 MB ceiling (about 13 minutes at 16 kHz, ADR-0004).
@@ -55,8 +58,8 @@ public sealed record Config
     private const int MinPlaybackTimeoutSeconds = 1;
     private const int MaxPlaybackTimeoutSeconds = 600;
 
-    /// How a Dictation ends: false leaves the Transcript on the clipboard (Copy, the default), true pastes it into the
-    /// focused app (Insert).
+    /// How a Microphone Dictation ends: false leaves the Transcript on the clipboard (Copy, the default), true pastes it
+    /// into the focused app (Insert). A Playback Dictation always ends in Copy.
     public bool Insert { get; init; }
 
     public string TranscriptionModel { get; init; } = "gpt-transcribe";
