@@ -126,6 +126,7 @@ public class ConfigTests
             "TrySetSound(Sent,BuiltIn)",
             "RegisterHotkey(Ctrl+Win+Z)",
             "RegisterDictationHotkey(Ctrl+Win+X)",
+            "RegisterPlaybackHotkey(Ctrl+Win+A)",
             "SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X))",
             "SetTrayMenuState(showEnabled:true,hideEnabled:false)",
         ];

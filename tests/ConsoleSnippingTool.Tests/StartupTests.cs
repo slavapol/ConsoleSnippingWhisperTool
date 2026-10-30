@@ -27,7 +27,7 @@ public class StartupTests
     }
 
     [Fact]
-    public void Fresh_start_acquires_the_instance_writes_config_resolves_the_key_sets_sounds_registers_both_Hotkeys_and_sets_up_the_tray_in_order()
+    public void Fresh_start_acquires_the_instance_writes_config_resolves_the_key_sets_sounds_registers_every_Hotkey_and_sets_up_the_tray_in_order()
     {
         var fake = new FakePlatform { ConfigText = null, Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
@@ -46,6 +46,7 @@ public class StartupTests
             "TrySetSound(Sent,BuiltIn)",
             "RegisterHotkey(Ctrl+Win+Z)",
             "RegisterDictationHotkey(Ctrl+Win+X)",
+            "RegisterPlaybackHotkey(Ctrl+Win+A)",
             "SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X))",
             "SetTrayMenuState(showEnabled:true,hideEnabled:false)",
         ];
