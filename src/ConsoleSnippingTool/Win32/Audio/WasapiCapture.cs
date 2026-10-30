@@ -56,7 +56,7 @@ internal sealed class WasapiCapture
     /// Opens the Default Communication Device's endpoint for source at sampleRate and starts capturing. Null when
     /// there is no such endpoint (E_NOTFOUND), when Windows denies the microphone (E_ACCESSDENIED from Initialize),
     /// when Initialize rejects the flags or the format, or when any other step fails; whatever was created by then is
-    /// released. Failing to read the device name never fails the open.
+    /// released. Failing to read the device name never fails the open, whatever the failure: the name is then empty.
     public static WasapiCapture? TryOpen(DictationSource source, int sampleRate)
     {
         var (dataFlow, streamFlags) = Endpoint(source);
@@ -215,8 +215,23 @@ internal sealed class WasapiCapture
     };
 
     /// PKEY_Device_FriendlyName from the device's property store, such as "Headset Earphone (Jabra Evolve2 65)"; empty
-    /// when the store cannot be opened, the value cannot be read or it is not a string.
+    /// when it cannot be read, whether a call fails or anything on the way throws, managed exceptions included. The
+    /// name only labels the Listening line, so reading it never fails the open (spec: Playback capture).
     private static string FriendlyName(IMMDevice device)
+    {
+        try
+        {
+            return ReadFriendlyName(device);
+        }
+        catch (Exception)
+        {
+            return "";
+        }
+    }
+
+    /// The property store read behind FriendlyName: empty when the store cannot be opened, the value cannot be read or
+    /// it is not a string. It may throw; FriendlyName turns that into an empty name.
+    private static string ReadFriendlyName(IMMDevice device)
     {
         if (Failed(device.OpenPropertyStore(NativeMethods.STGM_READ, out var storePointer)))
         {
