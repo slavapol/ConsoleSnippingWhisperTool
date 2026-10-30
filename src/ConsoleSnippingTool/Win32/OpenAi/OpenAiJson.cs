@@ -51,7 +51,7 @@ public static class OpenAiJson
     /// The Transcript and the languages the Service detected in a transcription response: the "text" field, and each
     /// entry under "languages", a code string or an object with a "code" (none when that field is absent or empty).
     /// Throws FormatException, whose message is the failure reason, when the body is not JSON or the text is not there.
-    public static (string Text, IReadOnlyList<string> Languages) ParseTranscript(string json)
+    public static Transcript ParseTranscript(string json)
     {
         using var document = ParseResponse(json);
         if (document.RootElement.ValueKind != JsonValueKind.Object
@@ -61,7 +61,7 @@ public static class OpenAiJson
             throw new FormatException("response has no \"text\" field");
         }
 
-        return (text.GetString()!, DetectedLanguages(document.RootElement));
+        return new Transcript(text.GetString()!, DetectedLanguages(document.RootElement));
     }
 
     // The code of every languages[] entry that has one: the entry itself when it is a string, its "code" when it is an

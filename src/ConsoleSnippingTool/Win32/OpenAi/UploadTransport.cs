@@ -6,7 +6,7 @@ namespace ConsoleSnippingTool.Win32.OpenAi;
 /// v1/audio/transcriptions (ADR-0004). The WAV container goes on here, on the caller's thread pool thread.
 internal sealed class UploadTransport : ITranscriptionTransport
 {
-    public async Task<(string Text, IReadOnlyList<string> Languages)> TranscribeAsync(AudioClip clip, TranscriptionRequest request, CancellationToken cancellationToken)
+    public async Task<Transcript> TranscribeAsync(AudioClip clip, TranscriptionRequest request, CancellationToken cancellationToken)
     {
         var wav = Wav.FromPcm16(clip.Pcm16, clip.SampleRate);
         var form = OpenAiJson.TranscriptionForm(wav, request.Model, request.Languages, request.Prompt);
