@@ -17,16 +17,16 @@ A Playback Dictation transcribes what the computer plays instead of what you say
 
 - **The cap.** Listening ends by itself after ten minutes (`dictation.playbackTimeoutSeconds`) and sends what it heard, so a forgotten Playback Dictation never runs for the rest of the meeting. The Console's Sent line then ends in `(cap)`.
 - **Copy only.** A Playback Transcript always goes to the clipboard, even with `dictation.insert` on. It can arrive a minute after you pressed, and by then the focus may be in the meeting chat.
-- **Esc is left alone.** Esc keeps working in your apps, so closing a dialog or leaving full screen in Zoom neither ends nor discards the recording. Exit from the tray menu discards a Playback Dictation in progress.
+- **Esc is left alone.** Esc keeps working in your apps, so closing a dialog or leaving full screen in Zoom neither ends nor discards the Dictation. Exit from the tray menu discards a Playback Dictation in progress.
 - **Taps.** A second press within half a second of the first is a Tap: nothing is sent and no sound plays.
-- **What is recorded.** Everything that plays on the Windows Default Communication Device: the meeting, but also notification sounds, a video in another tab and the tool's own Ready click. Stretches in which nothing plays are not recorded, so the audio sent can be shorter than the time spent Listening. A recording with less than a second of audio is dropped without a request, and the Console says `Nothing heard (nothing played)`.
-- **Which device.** The Console's Listening line names the device being recorded, for example `Listening (playback: Speakers (Realtek(R) Audio))`. If the meeting plays somewhere else, see [Playback hears nothing](#playback-hears-nothing).
+- **What is heard.** Everything that plays on the Windows Default Communication Device: the meeting, but also notification sounds, a video in another tab and the tool's own Ready click. Stretches in which nothing plays are left out, so the audio sent can be shorter than the time spent Listening. A Dictation with less than a second of audio is dropped without a request, and the Console says `Nothing heard (nothing played)`.
+- **Which device.** The Console's Listening line names the device being heard, for example `Listening (playback: Speakers (Realtek(R) Audio))`. If the meeting plays somewhere else, see [Playback hears nothing](#playback-hears-nothing).
 - **One job at a time.** While a Playback Dictation is Listening or Transcribing, `Ctrl+Win+Z` and `Ctrl+Win+X` are ignored with a Console line. `Ctrl+Win+A` is ignored the same way while a Capture is armed, while a Microphone Dictation is Listening, and while any Transcript is still on its way.
 - **Long passages take longer.** The transcription request may take 20 s plus 10 s per minute of audio before it gives up, two minutes for ten minutes of audio, and the failure line names the limit that applied: `Dictation failed: timed out after 120 s`.
 
 ### Other people's voices
 
-A Playback Dictation records the other people in the meeting and sends their voices to OpenAI to be transcribed. Some countries and states require everyone's consent before a conversation is recorded. Tell the people in the meeting, and leave it off where their consent is needed and you do not have it.
+A Playback Dictation hears the other people in the meeting and sends their voices to OpenAI to be transcribed. Some countries and states require everyone's consent before a conversation is recorded. Tell the people in the meeting, and leave it off where their consent is needed and you do not have it.
 
 ## config.json
 
@@ -309,10 +309,10 @@ The tray menu has Show, Hide and Exit. Show opens a Console that prints the thre
 
 ### Playback hears nothing
 
-When a Playback Dictation ends in `Nothing heard (nothing played)` although people were talking, or its Transcript is missing the meeting, the meeting plays on a different device from the one the tool records. The tool records the Windows Default Communication Device and names it on the Listening line, for example `Listening (playback: Speakers (Realtek(R) Audio))`.
+When a Playback Dictation ends in `Nothing heard (nothing played)` although people were talking, or its Transcript is missing the meeting, the meeting plays on a different output device from the one the tool hears. The tool hears the Windows Default Communication Device and names it on the Listening line, for example `Listening (playback: Speakers (Realtek(R) Audio))`.
 
-1. Open the meeting app's audio settings and look at the speaker it uses. Teams and Zoom each keep their own speaker setting and do not always follow Windows.
+1. Open the meeting app's audio settings and look at the output device it uses, the setting Teams and Zoom label "Speaker". Each app keeps its own and does not always follow Windows.
 2. Compare it with the device on the Listening line.
-3. If they differ, either pick the default or that same device as the speaker in the meeting app, or make the app's speaker the Default Communication Device in Windows: Settings, System, Sound, More sound settings, the Playback tab, right-click the device, Set as Default Communication Device.
+3. If they differ, either pick the default or that same device as the output device in the meeting app, or make the app's output device the Default Communication Device in Windows: Settings, System, Sound, More sound settings, the Playback tab, right-click the device, Set as Default Communication Device.
 
 With a Bluetooth headset, a call usually plays on the headset's Hands-Free device rather than its stereo one, so that is the device to look for. When the playback device cannot be opened at all, a balloon says `Playback could not be opened` and no Ready click plays. The Microphone's Listening line names its device the same way, `Listening (microphone: ...)`, so a Dictation that hears the wrong microphone is easy to spot too.

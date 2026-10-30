@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 
-Agreed in a grilling session on 2026-10-30; every recommended answer was accepted. Glossary terms are in `GLOSSARY.md`: Source, Microphone and Playback are new, and Dictation, Listening, Release, Tap, Discard, Copy, Insert, Transcript and Hotkey were widened for two Sources. ADR-0005 records why Playback is recorded from the communication output device and not from the meeting app. ADR-0004 (upload after the Release, not streaming) still governs the request; its size note now covers the 600-second Playback cap. The Dictation spec in `.scratch/dictation/spec.md` remains the reference for everything this spec does not change.
+Agreed in a grilling session on 2026-10-30; every recommended answer was accepted. Glossary terms are in `GLOSSARY.md`: Source, Microphone and Playback are new, and Dictation, Listening, Release, Tap, Discard, Copy, Insert, Transcript and Hotkey were widened for two Sources. ADR-0005 records why Playback hears the communication output device and not the meeting app. ADR-0004 (upload after the Release, not streaming) still governs the request; its size note now covers the 600-second Playback cap. The Dictation spec in `.scratch/dictation/spec.md` remains the reference for everything this spec does not change.
 
 ## Problem Statement
 
@@ -10,7 +10,7 @@ In Teams and Zoom meetings the user wants what the other people say as text: to 
 
 ## Solution
 
-A second Source for Dictation. Pressing `Ctrl+Win+A` opens Listening on Playback, the sound the computer plays on its Default Communication Device, and the Ready signal plays. The user lets go of the keys and keeps working. Pressing `Ctrl+Win+A` again is the Release: the Sent signal plays, the audio goes to the same transcription endpoint as a Microphone Dictation, and the Transcript lands on the clipboard with the Done signal. A Playback Dictation always ends in Copy, whatever `dictation.insert` says. Listening ends by itself at the Playback cap, ten minutes by default, and sends what it heard. Two presses within half a second are a Tap. Esc is left to the user's apps. A recording in which nothing played is dropped without a request. The Console's Listening line names the device being recorded, for both Sources, so a meeting that plays on another speaker is easy to spot. Both Sources share the model, the languages, the prompt and Cleanup; the request timeout now grows with the length of the recording, for both Sources.
+A second Source for Dictation. Pressing `Ctrl+Win+A` opens Listening on Playback, the sound the computer plays on its Default Communication Device, and the Ready signal plays. The user lets go of the keys and keeps working. Pressing `Ctrl+Win+A` again is the Release: the Sent signal plays, the audio goes to the same transcription endpoint as a Microphone Dictation, and the Transcript lands on the clipboard with the Done signal. A Playback Dictation always ends in Copy, whatever `dictation.insert` says. Listening ends by itself at the Playback cap, ten minutes by default, and sends what it heard. Two presses within half a second are a Tap. Esc is left to the user's apps. A Dictation in which nothing played is dropped without a request. The Console's Listening line names the device being heard, for both Sources, so a meeting that plays on another output device is easy to spot. Both Sources share the model, the languages, the prompt and Cleanup; the request timeout now grows with the length of the audio, for both Sources.
 
 ## User Stories
 
@@ -32,10 +32,10 @@ A second Source for Dictation. Pressing `Ctrl+Win+A` opens Listening on Playback
 11. As a user, I want a second press within half a second of the first to send nothing and play no sound, so that an accidental double press costs nothing.
 12. As a user, I want Listening on Playback to end by itself after ten minutes and send what it heard, so that a forgotten Playback Dictation never runs for the rest of the meeting and the ten minutes are not lost.
 13. As a user, I want to set the Playback cap separately from the Microphone cap, so that short voice notes and long meeting passages each get a fitting limit.
-14. As a user, I want the cap to end the Playback Dictation, not start another one, so that the tool never records more than I asked for.
-15. As a user, I want Esc to keep working in my apps during a Playback Dictation, so that closing a dialog or leaving full screen in Zoom neither fails nor throws the recording away.
-16. As a user, I want Exit and a relaunch to discard a Playback Dictation in progress and close the device, so that closing the tool never leaves a recording running.
-17. As a user, I want a Playback recording in which nothing played to be dropped without a request, with the Console line `Nothing heard (nothing played)`, so that a silent device costs nothing and I can see why no Sent signal came.
+14. As a user, I want the cap to end the Playback Dictation, not start another one, so that the tool never hears more than I asked for.
+15. As a user, I want Esc to keep working in my apps during a Playback Dictation, so that closing a dialog or leaving full screen in Zoom neither fails nor throws the Dictation away.
+16. As a user, I want Exit and a relaunch to discard a Playback Dictation in progress and close the device, so that closing the tool never leaves a Dictation running.
+17. As a user, I want a Playback Dictation in which nothing played to be dropped without a request, with the Console line `Nothing heard (nothing played)`, so that a silent device costs nothing and I can see why no Sent signal came.
 
 ### Delivery
 
@@ -52,14 +52,14 @@ A second Source for Dictation. Pressing `Ctrl+Win+A` opens Listening on Playback
 
 ### The device, and seeing which one
 
-25. As a user, I want Playback to record the Windows Default Communication Device, so that a Bluetooth headset in a call, which plays the meeting on its Hands-Free device, is heard.
-26. As a user, I want the device opened on each first press and closed at the Release, so that a changed default is picked up next time and nothing is recorded while Idle.
-27. As a user, I want the Console's Listening line to name the device being recorded, for Playback and for the Microphone, so that I can see at once when the meeting plays somewhere else.
+25. As a user, I want Playback to hear the Windows Default Communication Device, so that a Bluetooth headset in a call, which plays the meeting on its Hands-Free device, is heard.
+26. As a user, I want the device opened on each first press and closed at the Release, so that a changed default is picked up next time and nothing is heard while Idle.
+27. As a user, I want the Console's Listening line to name the device being heard, for Playback and for the Microphone, so that I can see at once when the meeting plays somewhere else.
 28. As a user, I want a balloon and a Console line when the playback device cannot be opened, with no Ready signal, so that I know why nothing started.
 
 ### Timeouts
 
-29. As a user, I want the transcription request's timeout to grow with the length of the recording, so that a ten-minute passage is not cut off at 20 seconds.
+29. As a user, I want the transcription request's timeout to grow with the length of the audio, so that a ten-minute passage is not cut off at 20 seconds.
 30. As a user, I want the Cleanup of that Dictation to get the same longer timeout, so that cleaning ten minutes of text is not cut off either.
 31. As a user, I want the failure line to name the limit that applied, such as `timed out after 120 s`, so that I know how long it waited.
 32. As a Microphone user, I want a short Dictation to keep a timeout close to today's 20 seconds, so that a dead network is still reported quickly.
@@ -80,7 +80,7 @@ A second Source for Dictation. Pressing `Ctrl+Win+A` opens Listening on Playback
 41. As a user, I want the Console lines of a Playback Dictation (sent, copied, nothing heard, failed) to read like the Microphone ones, so that one log tells the whole story.
 42. As a user, I want the README to document the two new settings and how a Playback Dictation works, so that I can use it without reading code.
 43. As a user, I want the README to say that a Playback Dictation sends other people's voices to OpenAI and that some places require their consent to record, so that I use it responsibly.
-44. As a user, I want the README's troubleshooting section to tell me what to check when Playback hears nothing, so that I compare the meeting app's speaker setting with the device on the Listening line.
+44. As a user, I want the README's troubleshooting section to tell me what to check when Playback hears nothing, so that I compare the meeting app's output device with the device on the Listening line.
 
 ### Developer
 
@@ -102,7 +102,7 @@ A second Source for Dictation. Pressing `Ctrl+Win+A` opens Listening on Playback
   - Armed or FirstCorner: log `Playback hotkey ignored while armed`.
   - Transcribing, either Source: log `Playback hotkey ignored while transcribing`.
 - The timer while Listening on Playback is a Release by the cap and is never a Tap, as for the Microphone.
-- After a Playback Release that is not a Tap: a clip with less than 1 s of audio is not sent. Log `Nothing heard (nothing played)`, Idle, no Sent, no request. Loopback delivers nothing while no app plays, but the 30 ms built-in Ready click lands in the recording whenever the Default Device is also the communication default, and the sound player renders about 0.4 s of silence after it, so the click alone makes a 0.44 s clip (measured in ticket 04) and "empty" would almost never be true. Otherwise `PlaySound(Sent)`, `BeginTranscription`, Transcribing, log `Sent 312.4 s of audio` with ` (cap)` appended when the timer ended it. The Microphone keeps its current rule: it sends every Release that is not a Tap.
+- After a Playback Release that is not a Tap: a clip with less than 1 s of audio is not sent. Log `Nothing heard (nothing played)`, Idle, no Sent, no request. Loopback delivers nothing while no app plays, but the 30 ms built-in Ready click lands in the audio whenever the Default Device is also the communication default, and the sound player renders about 0.4 s of silence after it, so the click alone makes a 0.44 s clip (measured in ticket 04) and "empty" would almost never be true. Otherwise `PlaySound(Sent)`, `BeginTranscription`, Transcribing, log `Sent 312.4 s of audio` with ` (cap)` appended when the timer ended it. The Microphone keeps its current rule: it sends every Release that is not a Tap.
 - While Listening on Playback, `OnDictationKeyUp()` and `OnCancelKey()` are ignored. Windows sends neither then, because no hook is installed and no cancel key is registered; ignoring them keeps a stale message harmless.
 - The Microphone Hotkey while Listening on Playback logs `Microphone hotkey ignored while listening`. While Listening on the Microphone it stays silent, as today, because it can only be autorepeat. The existing ignore lines that say `Dictation hotkey ignored while ...` become `Microphone hotkey ignored while ...`, since there are now two Dictation Hotkeys. The Capture Hotkey lines are unchanged and now also apply during a Playback Dictation.
 - Delivery: a Playback Transcript is always Copied. A Microphone Transcript is Copied or Inserted by `dictation.insert`, as today. The Cleanup fallback line names the delivery that will happen, so for Playback it always reads `Cleanup failed: <reason>; copying the raw transcript`. Nothing heard, Cleanup `EMPTY`, failures and late results behave as for the Microphone.
@@ -121,7 +121,7 @@ A second Source for Dictation. Pressing `Ctrl+Win+A` opens Listening on Playback
 - Loopback delivers packets only while something renders to the endpoint. The drain loop's existing 100 ms wait means it never stalls. The gaps are not filled, so the clip holds only what played and can be shorter than the time spent Listening. The 100 ms wake also keeps the drain correct on systems where a loopback stream never signals its event.
 - `AUTOCONVERTPCM` on a loopback stream is reported to work, but Microsoft does not document it. Should `Initialize` reject it on some PC, `TryOpenSource` is false and the user sees `Playback could not be opened`. A fallback that captures the mix format and converts in code is a follow-up, not part of this spec; the end-to-end ticket's manual check confirms the flag on the user's PC.
 - The device name is the endpoint's friendly name, read from its property store (`PKEY_Device_FriendlyName`) when the device opens, for both Sources. It is empty when it cannot be read, whatever the reason, a thrown exception included, so reading it never fails the open. This needs `IPropertyStore` and a `PROPVARIANT` declared with the existing COM interfaces, released with `PropVariantClear`.
-- The Signals play through the existing sound player on the Default Device. When that is also the communication default, the Ready click is in the recording; ADR-0005 accepts this.
+- The Signals play through the existing sound player on the Default Device. When that is also the communication default, the Ready click is in the audio; ADR-0005 accepts this.
 
 ### Requests and their timeout
 
@@ -170,7 +170,7 @@ A second Source for Dictation. Pressing `Ctrl+Win+A` opens Listening on Playback
 - The config reference gains the two fields, notes that `insert` applies to the Microphone only and that the other dictation settings are shared, and shows the new default file.
 - A short section on using a Playback Dictation: press, press again, the cap, Copy only, Esc left alone.
 - A consent note: a Playback Dictation sends other people's voices to OpenAI, and some places require everyone's consent to record.
-- Troubleshooting: when Playback hears nothing, compare the device on the Listening line with the speaker chosen in the meeting app, and make that device the Default Communication Device or pick the default in the app.
+- Troubleshooting: when Playback hears nothing, compare the device on the Listening line with the output device chosen in the meeting app, the setting Teams and Zoom label "Speaker", and make that device the Default Communication Device or pick the default in the app.
 
 ## Testing Decisions
 
@@ -193,7 +193,7 @@ A second Source for Dictation. Pressing `Ctrl+Win+A` opens Listening on Playback
   - the header and tooltip text.
 - Existing tests whose expected text changes are updated, not deleted: the Listening line, the `Dictation hotkey ignored` lines, the microphone call names, the recorded request strings, the header, the tooltip and the default file.
 - The loopback capture, the property store and the Hotkey registration are adapter code and are not unit tested. The end-to-end ticket records a manual run:
-  - a Teams or Zoom test call on laptop speakers, and again with a Bluetooth headset;
+  - a Teams or Zoom test call on the laptop's built-in output device, and again with a Bluetooth headset;
   - a video playing in a browser;
   - nothing playing at all;
   - Esc in a full-screen Zoom during Listening;
@@ -205,11 +205,11 @@ A second Source for Dictation. Pressing `Ctrl+Win+A` opens Listening on Playback
 
 ## Out of Scope
 
-- Recording a whole meeting: continuous capture, splitting it into chunks, restarting after the cap, writing transcripts to a file.
+- A Dictation of a whole meeting: continuous Listening, splitting it into chunks, restarting after the cap, writing transcripts to a file.
 - Speaker labels or diarisation.
 - Mixing the Microphone into Playback.
-- Recording one app's audio (process loopback), choosing a device, or following the plain Default Device (ADR-0005).
-- Keeping the tool's own Signals or notification sounds out of the recording.
+- Hearing one app's audio (process loopback), choosing a device, or following the plain Default Device (ADR-0005).
+- Keeping the tool's own Signals or notification sounds out of the audio.
 - Running a Capture and a Dictation at the same time, or starting a Dictation while another is Transcribing.
 - Any visual indicator while Listening on Playback.
 - Insert for Playback.
@@ -223,6 +223,6 @@ A second Source for Dictation. Pressing `Ctrl+Win+A` opens Listening on Playback
 - Facts checked on 2026-10-30:
   - Loopback delivers no data while nothing renders to the endpoint (https://github.com/naudio/NAudio/blob/master/Docs/WasapiLoopbackCapture.md).
   - The NAudio author reports `AUTOCONVERTPCM` working for 16 kHz mono capture, loopback included (https://markheath.net/post/2022/4/30/wasapi-sample-rate-conversion); Microsoft documents the flags but not that combination (https://learn.microsoft.com/en-us/windows/win32/coreaudio/audclnt-streamflags-xxx-constants).
-  - Teams keeps its own speaker setting and does not reliably follow either Windows default (https://techcommunity.microsoft.com/discussions/microsoftteams/default-audio-devices-in-teams/1649633).
+  - Teams keeps its own output device setting and does not reliably follow either Windows default (https://techcommunity.microsoft.com/discussions/microsoftteams/default-audio-devices-in-teams/1649633).
 - Process loopback needs Windows 11 and activates through `ActivateAudioInterfaceAsync`; ADR-0005 explains why it was rejected.
 - `main` (c98ea5a) carries Capture and Dictation; this feature is built on a new branch from it.
