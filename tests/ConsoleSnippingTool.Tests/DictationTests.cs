@@ -759,19 +759,6 @@ public class DictationTests
         return (fake, core);
     }
 
-    /// The header Show prints before the ring: the tool name, the two Hotkeys, the discard line and a blank one.
-    private const int HeaderLines = 5;
-
-    /// The log ring as Show replays it, timestamps included: every line after the header. Call it last, because
-    /// Show itself adds calls.
-    private static List<string> Logged(FakePlatform fake, SnipperCore core)
-    {
-        var before = fake.Calls.Count;
-        core.OnShow();
-        return fake.Calls
-            .Skip(before + 1 + HeaderLines)
-            .TakeWhile(call => call.StartsWith("WriteConsoleLine(", StringComparison.Ordinal))
-            .Select(call => call["WriteConsoleLine(".Length..^1])
-            .ToList();
-    }
+    /// The log ring as Show replays it, timestamps included. Call it last, because Show itself adds calls.
+    private static List<string> Logged(FakePlatform fake, SnipperCore core) => ConsoleReplay.Logged(fake, core);
 }
