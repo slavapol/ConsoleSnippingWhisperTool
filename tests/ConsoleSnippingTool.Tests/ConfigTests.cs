@@ -411,6 +411,59 @@ public class ConfigTests
     }
 
     [Fact]
+    public void A_Playback_Hotkey_equal_to_the_Capture_Hotkey_is_reported_once_and_falls_back_to_its_default()
+    {
+        var (config, problems) = Config.Load(ConfigJson.With(hotkey: "Ctrl+Alt+M", playbackHotkey: "ctrl+alt+m"));
+
+        Assert.Equal(["config.json: dictation.playbackHotkey Ctrl+Alt+M is the same as the Capture Hotkey in effect; using default Ctrl+Win+A"], problems);
+        Assert.Equal("Ctrl+Alt+M", config.Hotkey.Text);
+        Assert.Equal(Hotkey.PlaybackDefault, config.PlaybackHotkey);
+    }
+
+    [Fact]
+    public void The_Playback_clash_rule_compares_against_the_Capture_Hotkey_in_effect_so_a_hotkey_fallen_back_to_its_default_still_clashes()
+    {
+        var (config, problems) = Config.Load(ConfigJson.With(hotkey: "Ctrl+Home", playbackHotkey: "Ctrl+Win+Z"));
+
+        string[] expected =
+        [
+            "config.json: hotkey \"Ctrl+Home\" is not a valid Hotkey; using default Ctrl+Win+Z",
+            "config.json: dictation.playbackHotkey Ctrl+Win+Z is the same as the Capture Hotkey in effect; using default Ctrl+Win+A",
+        ];
+        Assert.Equal(expected, problems);
+        Assert.Equal(Hotkey.Default, config.Hotkey);
+        Assert.Equal(Hotkey.PlaybackDefault, config.PlaybackHotkey);
+    }
+
+    [Fact]
+    public void A_Playback_Hotkey_equal_to_both_others_is_reported_once_as_the_same_as_the_Capture_Hotkey()
+    {
+        // dictation.hotkey is missing, so the Microphone Hotkey in effect is its default Ctrl+Win+X without a clash
+        // check of its own, and the Capture Hotkey written as Ctrl+Win+X is the same key.
+        var json = """{ "hotkey": "Ctrl+Win+X", "armedTimeoutSeconds": 30, "sounds": { "ready": null, "corner": null, "sent": null, "done": null }, "openAi": { "apiKey": null }, "dictation": { "listeningTimeoutSeconds": 120, "playbackHotkey": "Ctrl+Win+X", "playbackTimeoutSeconds": 600, "insert": false, "model": "gpt-transcribe", "languages": ["en", "ru"], "prompt": null, "cleanup": false, "cleanupModel": "gpt-6-luna" } }""";
+
+        var (config, problems) = Config.Load(json);
+
+        string[] expected =
+        [
+            "config.json: dictation.hotkey is missing; using default Ctrl+Win+X",
+            "config.json: dictation.playbackHotkey Ctrl+Win+X is the same as the Capture Hotkey in effect; using default Ctrl+Win+A",
+        ];
+        Assert.Equal(expected, problems);
+        Assert.Equal(Hotkey.PlaybackDefault, config.PlaybackHotkey);
+    }
+
+    [Fact]
+    public void An_invalid_Playback_Hotkey_is_not_compared_so_a_default_equal_to_the_Capture_Hotkey_is_kept_without_a_clash_problem()
+    {
+        var (config, problems) = Config.Load(ConfigJson.With(hotkey: "Ctrl+Win+A", playbackHotkey: "Ctrl+Home"));
+
+        Assert.Equal(["config.json: dictation.playbackHotkey \"Ctrl+Home\" is not a valid Hotkey; using default Ctrl+Win+A"], problems);
+        Assert.Equal("Ctrl+Win+A", config.Hotkey.Text);
+        Assert.Equal(Hotkey.PlaybackDefault, config.PlaybackHotkey);
+    }
+
+    [Fact]
     public void A_Playback_Hotkey_equal_to_the_Microphone_Hotkey_is_reported_once_and_falls_back_to_its_default()
     {
         var (config, problems) = Config.Load(ConfigJson.With(dictationHotkey: "Ctrl+Alt+D", playbackHotkey: "ctrl+alt+d"));

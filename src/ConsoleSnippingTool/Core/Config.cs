@@ -183,9 +183,18 @@ public sealed record Config
 
             var listeningTimeoutSeconds = LoadTimeout(dictation, "dictation.listeningTimeoutSeconds", MinListeningTimeoutSeconds, MaxListeningTimeoutSeconds, defaults.ListeningTimeoutSeconds, problems);
             var playbackHotkey = LoadHotkey(dictation, "dictation.playbackHotkey", defaults.PlaybackHotkey, problems);
-            if (playbackHotkey is { } playback && SameKeys(playback, dictationHotkey ?? defaults.DictationHotkey))
+            // Spec: the same rule for the Playback Hotkey, compared against the Capture Hotkey in effect and then the
+            // Microphone Hotkey in effect, each after its own fallback. A missing or invalid playbackHotkey is not
+            // compared, so a default that collides is left to fail its registration and be reported as taken.
+            var clash = playbackHotkey switch
             {
-                problems.Add($"{FileName}: dictation.playbackHotkey {playback.Text} is the same as the Microphone Hotkey in effect; using default {defaults.PlaybackHotkey.Text}");
+                { } written when SameKeys(written, hotkey) => "Capture Hotkey",
+                { } written when SameKeys(written, dictationHotkey ?? defaults.DictationHotkey) => "Microphone Hotkey",
+                _ => null,
+            };
+            if (playbackHotkey is { } playback && clash is not null)
+            {
+                problems.Add($"{FileName}: dictation.playbackHotkey {playback.Text} is the same as the {clash} in effect; using default {defaults.PlaybackHotkey.Text}");
                 playbackHotkey = null;
             }
 
