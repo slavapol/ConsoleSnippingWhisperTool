@@ -8,7 +8,7 @@ public sealed partial class SnipperCore
     /// for Playback (Playback Dictation spec: user story 13).
     private TimeSpan CapFor(DictationSource source) => TimeSpan.FromSeconds(source switch
     {
-        DictationSource.Microphone => _config.ListeningTimeoutSeconds,
+        DictationSource.Microphone => _config.MicrophoneTimeoutSeconds,
         DictationSource.Playback => _config.PlaybackTimeoutSeconds,
         _ => throw new ArgumentOutOfRangeException(nameof(source), source, null),
     });
@@ -16,7 +16,7 @@ public sealed partial class SnipperCore
     /// The Microphone Hotkey went down. Unlike the Capture Hotkey it never toggles: while Listening on the Microphone
     /// the repeats of the held chord are silent, and during a Capture, a Playback Dictation or a Transcription the
     /// press is one log line (spec: user stories 13 and 14; Playback Dictation spec: user story 23).
-    public void OnDictationHotkey()
+    public void OnMicrophoneHotkey()
     {
         switch (_state)
         {
@@ -88,7 +88,7 @@ public sealed partial class SnipperCore
         _platform.StartTimer(CapFor(source));
         if (source == DictationSource.Microphone)
         {
-            _platform.InstallKeyboardHook(_config.DictationHotkey);
+            _platform.InstallKeyboardHook(_config.MicrophoneHotkey);
         }
 
         _platform.WarmUpService(apiKey);
@@ -104,7 +104,7 @@ public sealed partial class SnipperCore
 
     /// Any key of the held chord went up: the Release. Playback installs no hook, so a key-up while Listening on it
     /// can only be a stale message and is ignored.
-    public void OnDictationKeyUp()
+    public void OnMicrophoneKeyUp()
     {
         if (_state == State.Listening && _source == DictationSource.Microphone)
         {

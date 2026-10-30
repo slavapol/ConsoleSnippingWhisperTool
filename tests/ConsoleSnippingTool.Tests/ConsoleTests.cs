@@ -195,7 +195,7 @@ public class ConsoleTests
             "HideConsole()",
             "SetTrayMenuState(showEnabled:true,hideEnabled:false)",
             "UnregisterHotkey()",
-            "UnregisterDictationHotkey()",
+            "UnregisterMicrophoneHotkey()",
             "UnregisterPlaybackHotkey()",
             "RemoveTrayIcon()",
             "Exit()",

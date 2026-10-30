@@ -5,7 +5,7 @@ public readonly record struct Hotkey(HotkeyModifiers Modifiers, int VirtualKey, 
 {
     public static Hotkey Default => new(HotkeyModifiers.Control | HotkeyModifiers.Win, 0x5A, "Ctrl+Win+Z");
 
-    public static Hotkey DictationDefault => new(HotkeyModifiers.Control | HotkeyModifiers.Win, 0x58, "Ctrl+Win+X");
+    public static Hotkey MicrophoneDefault => new(HotkeyModifiers.Control | HotkeyModifiers.Win, 0x58, "Ctrl+Win+X");
 
     /// The Playback Hotkey's default. Windows 11 takes Win+A for Quick Settings but documents nothing for Ctrl+Win+A.
     public static Hotkey PlaybackDefault => new(HotkeyModifiers.Control | HotkeyModifiers.Win, 0x41, "Ctrl+Win+A");

@@ -45,7 +45,7 @@ public class StartupTests
             "TrySetSound(Done,BuiltIn)",
             "TrySetSound(Sent,BuiltIn)",
             "RegisterHotkey(Ctrl+Win+Z)",
-            "RegisterDictationHotkey(Ctrl+Win+X)",
+            "RegisterMicrophoneHotkey(Ctrl+Win+X)",
             "RegisterPlaybackHotkey(Ctrl+Win+A)",
             "SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X, playback Ctrl+Win+A))",
             "SetTrayMenuState(showEnabled:true,hideEnabled:false)",
@@ -112,9 +112,9 @@ public class StartupTests
     }
 
     [Fact]
-    public void A_Dictation_Hotkey_another_app_owns_is_reported_with_a_balloon_while_Capture_keeps_working_and_the_tray_is_still_set_up()
+    public void A_Microphone_Hotkey_another_app_owns_is_reported_with_a_balloon_while_Capture_keeps_working_and_the_tray_is_still_set_up()
     {
-        var fake = new FakePlatform { RegisterDictationHotkeyResult = false, Environment = ApiKey.InEnvironment };
+        var fake = new FakePlatform { RegisterMicrophoneHotkeyResult = false, Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
@@ -122,10 +122,10 @@ public class StartupTests
         var balloon = Assert.Single(fake.Calls, call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal));
         Assert.Equal("ShowBalloon(ConsoleSnippingTool: Hotkey Ctrl+Win+X is already taken by another app; edit config.json and relaunch)", balloon);
         var capture = fake.Calls.IndexOf("RegisterHotkey(Ctrl+Win+Z)");
-        var dictation = fake.Calls.IndexOf("RegisterDictationHotkey(Ctrl+Win+X)");
+        var dictation = fake.Calls.IndexOf("RegisterMicrophoneHotkey(Ctrl+Win+X)");
         var tooltip = fake.Calls.IndexOf("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X, playback Ctrl+Win+A))");
         Assert.True(capture >= 0, "the Capture Hotkey was registered");
-        Assert.True(dictation > capture, "the Dictation Hotkey is registered after the Capture one");
+        Assert.True(dictation > capture, "the Microphone Hotkey is registered after the Capture one");
         Assert.Equal(dictation + 1, fake.Calls.IndexOf(balloon));
         Assert.True(tooltip > dictation, "the tray is still set up afterwards");
         Assert.Contains("SetTrayMenuState(showEnabled:true,hideEnabled:false)", fake.Calls);
@@ -142,7 +142,7 @@ public class StartupTests
         var balloon = Assert.Single(fake.Calls, call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal));
         Assert.Equal("ShowBalloon(ConsoleSnippingTool: Hotkey Ctrl+Win+A is already taken by another app; edit config.json and relaunch)", balloon);
         var capture = fake.Calls.IndexOf("RegisterHotkey(Ctrl+Win+Z)");
-        var microphone = fake.Calls.IndexOf("RegisterDictationHotkey(Ctrl+Win+X)");
+        var microphone = fake.Calls.IndexOf("RegisterMicrophoneHotkey(Ctrl+Win+X)");
         var playback = fake.Calls.IndexOf("RegisterPlaybackHotkey(Ctrl+Win+A)");
         var tooltip = fake.Calls.FindIndex(call => call.StartsWith("SetTrayTooltip(", StringComparison.Ordinal));
         Assert.True(capture >= 0, "the Capture Hotkey was registered");
@@ -171,7 +171,7 @@ public class StartupTests
         ];
         Assert.Equal(expectedBalloons, fake.Calls.Where(call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal)));
         Assert.Contains("RegisterHotkey(Ctrl+Win+A)", fake.Calls);
-        Assert.Contains("RegisterDictationHotkey(Ctrl+Win+X)", fake.Calls);
+        Assert.Contains("RegisterMicrophoneHotkey(Ctrl+Win+X)", fake.Calls);
         Assert.Contains("RegisterPlaybackHotkey(Ctrl+Win+A)", fake.Calls);
     }
 
@@ -205,7 +205,7 @@ public class StartupTests
 
         core.OnExit();
 
-        string[] expected = ["UnregisterHotkey()", "UnregisterDictationHotkey()", "UnregisterPlaybackHotkey()", "RemoveTrayIcon()", "Exit()"];
+        string[] expected = ["UnregisterHotkey()", "UnregisterMicrophoneHotkey()", "UnregisterPlaybackHotkey()", "RemoveTrayIcon()", "Exit()"];
         Assert.Equal(expected, fake.Calls);
     }
 
@@ -219,7 +219,7 @@ public class StartupTests
 
         core.OnReplaceRequested();
 
-        string[] expected = ["UnregisterHotkey()", "UnregisterDictationHotkey()", "UnregisterPlaybackHotkey()", "RemoveTrayIcon()", "Exit()"];
+        string[] expected = ["UnregisterHotkey()", "UnregisterMicrophoneHotkey()", "UnregisterPlaybackHotkey()", "RemoveTrayIcon()", "Exit()"];
         Assert.Equal(expected, fake.Calls);
     }
 

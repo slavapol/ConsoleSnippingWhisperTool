@@ -24,18 +24,18 @@ public sealed partial class Win32Platform
     private bool _swallowNextEscapeUp;
     private bool _removeKeyboardHookAfterEscapeUp;
 
-    // Dictation Hotkey: registered like the Capture one under its own id, so the chord's key-down is swallowed
+    // Microphone Hotkey: registered like the Capture one under its own id, so the chord's key-down is swallowed
     // system-wide and a conflict reaches the core as false. MOD_NOREPEAT stays: the Release comes from the hook below,
     // not from autorepeat, so the repeated WM_HOTKEY messages the core would ignore anyway need not arrive.
 
-    public bool RegisterDictationHotkey(Hotkey hotkey) =>
+    public bool RegisterMicrophoneHotkey(Hotkey hotkey) =>
         NativeMethods.RegisterHotKey(
             _window.Handle,
-            MessageWindow.DictationHotkeyId,
+            MessageWindow.MicrophoneHotkeyId,
             (uint)hotkey.Modifiers | NativeMethods.MOD_NOREPEAT,
             (uint)hotkey.VirtualKey);
 
-    public void UnregisterDictationHotkey() => NativeMethods.UnregisterHotKey(_window.Handle, MessageWindow.DictationHotkeyId);
+    public void UnregisterMicrophoneHotkey() => NativeMethods.UnregisterHotKey(_window.Handle, MessageWindow.MicrophoneHotkeyId);
 
     // Playback Hotkey: registered the same way under its own id. Only the press matters, a second press being the
     // Release, so no hook is involved; MOD_NOREPEAT keeps a slowly released chord to one press (spec: user story 10).
@@ -58,7 +58,7 @@ public sealed partial class Win32Platform
     // reaches Windows as Ctrl+Win+Esc, which matches no registration of ours; Windows then reads it as Ctrl+Esc, opens
     // the Start menu, and the Dictation runs on. The hook sees the raw key event before any of that, so while it is
     // installed it swallows the Esc key-down (and the autorepeats of a held Esc) together with the matching key-up, and
-    // posts the down to the message window as WM_DICTATION_CANCEL, where the core handles it as OnCancelKey after the
+    // posts the down to the message window as WM_MICROPHONE_CANCEL, where the core handles it as OnCancelKey after the
     // callback has returned. The cancel-key registration stays an Armed-only mechanism.
 
     public void InstallKeyboardHook(Hotkey chord)
@@ -104,9 +104,9 @@ public sealed partial class Win32Platform
     /// Runs on the STA thread for every key event while installed, from inside the message loop's GetMessage, under
     /// the same bounded-time rule as MouseHookCallback: it decides nothing and calls nothing that could take time. Two
     /// jobs. On the first key-up (WM_KEYUP, or WM_SYSKEYUP while Alt is down) of a key belonging to the chord it posts
-    /// WM_DICTATION_KEY_UP, and the core handles the Release after this has returned; later key-ups of the same
+    /// WM_MICROPHONE_KEY_UP, and the core handles the Release after this has returned; later key-ups of the same
     /// installation post nothing, so a chord whose keys go up together is one Release (the core would ignore a second
-    /// anyway). On an Esc key-down it posts WM_DICTATION_CANCEL and swallows the event, and it swallows the matching
+    /// anyway). On an Esc key-down it posts WM_MICROPHONE_CANCEL and swallows the event, and it swallows the matching
     /// key-up; the note above InstallKeyboardHook says why Esc must come this way. Every other event, matched or not,
     /// goes on to the next hook and to the focused app: the chord's key-down was already swallowed by RegisterHotKey,
     /// and the app must still see the modifiers go up or it would hold them down. Injected input is not filtered out,
@@ -126,7 +126,7 @@ public sealed partial class Win32Platform
                         {
                             // The first down of this press; a held Esc repeats the down and is swallowed without a second post.
                             _swallowNextEscapeUp = true;
-                            NativeMethods.PostMessageW(_window.Handle, MessageWindow.WM_DICTATION_CANCEL, 0, 0);
+                            NativeMethods.PostMessageW(_window.Handle, MessageWindow.WM_MICROPHONE_CANCEL, 0, 0);
                         }
 
                         return 1;
@@ -146,7 +146,7 @@ public sealed partial class Win32Platform
                 && IsChordKey(lParam.vkCode))
             {
                 _releasePosted = true;
-                NativeMethods.PostMessageW(_window.Handle, MessageWindow.WM_DICTATION_KEY_UP, 0, 0);
+                NativeMethods.PostMessageW(_window.Handle, MessageWindow.WM_MICROPHONE_KEY_UP, 0, 0);
             }
         }
 

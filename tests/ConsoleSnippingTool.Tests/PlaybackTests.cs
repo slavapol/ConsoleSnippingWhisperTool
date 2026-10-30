@@ -202,7 +202,7 @@ public class PlaybackTests
         var (fake, core) = Listening();
         Advance(TimeSpan.FromSeconds(3));
 
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
         core.OnCancelKey();
 
         Assert.Empty(fake.Calls);
@@ -236,7 +236,7 @@ public class PlaybackTests
     {
         var (fake, core) = In(state);
 
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
 
         Assert.Empty(fake.Calls);
         Assert.Equal($"14:02:10 {line}", Logged(fake, core)[^1]);
@@ -371,7 +371,7 @@ public class PlaybackTests
             "StopTimer()",
             "CloseSource()",
             "UnregisterHotkey()",
-            "UnregisterDictationHotkey()",
+            "UnregisterMicrophoneHotkey()",
             "UnregisterPlaybackHotkey()",
             "RemoveTrayIcon()",
             "Exit()",
@@ -434,13 +434,13 @@ public class PlaybackTests
                 Advance(threeSeconds);
                 break;
             case "MicrophoneListening":
-                core.OnDictationHotkey();
+                core.OnMicrophoneHotkey();
                 Advance(threeSeconds);
                 break;
             case "MicrophoneTranscribing":
-                core.OnDictationHotkey();
+                core.OnMicrophoneHotkey();
                 Advance(threeSeconds);
-                core.OnDictationKeyUp();
+                core.OnMicrophoneKeyUp();
                 break;
             case "PlaybackListening":
                 core.OnPlaybackHotkey();

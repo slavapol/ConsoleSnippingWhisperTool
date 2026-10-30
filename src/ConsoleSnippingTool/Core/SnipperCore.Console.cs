@@ -13,7 +13,7 @@ public sealed partial class SnipperCore
         _platform.ShowConsole();
         _platform.WriteConsoleLine(ToolName);
         _platform.WriteConsoleLine($"Press {_config.Hotkey.Text} to capture");
-        _platform.WriteConsoleLine($"Hold {_config.DictationHotkey.Text} to dictate");
+        _platform.WriteConsoleLine($"Hold {_config.MicrophoneHotkey.Text} to dictate");
         _platform.WriteConsoleLine($"Press {_config.PlaybackHotkey.Text} to transcribe playback, again to send");
         _platform.WriteConsoleLine("Esc or right-click cancels a capture; Esc discards a microphone dictation");
         _platform.WriteConsoleLine("");

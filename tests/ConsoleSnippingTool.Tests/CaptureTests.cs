@@ -168,7 +168,7 @@ public class CaptureTests
             "UnregisterCancelKey()",
             "StopTimer()",
             "UnregisterHotkey()",
-            "UnregisterDictationHotkey()",
+            "UnregisterMicrophoneHotkey()",
             "UnregisterPlaybackHotkey()",
             "RemoveTrayIcon()",
             "Exit()",

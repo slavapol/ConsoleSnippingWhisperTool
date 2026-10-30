@@ -11,15 +11,15 @@ internal sealed class MessageWindow : NativeWindow
 {
     public const int CaptureHotkeyId = 1;
     public const int CancelKeyId = 2;
-    public const int DictationHotkeyId = 3;
+    public const int MicrophoneHotkeyId = 3;
     public const int PlaybackHotkeyId = 4;
     public const int WM_REPLACE_REQUESTED = NativeMethods.WM_APP + 1;
     public const int WM_LEFT_BUTTON_DOWN = NativeMethods.WM_APP + 2;  // wParam = x, lParam = y, virtual-screen pixels
     public const int WM_RIGHT_BUTTON_DOWN = NativeMethods.WM_APP + 3;
     public const int WM_EXIT_REQUESTED = NativeMethods.WM_APP + 4;
-    public const int WM_DICTATION_KEY_UP = NativeMethods.WM_APP + 5;
+    public const int WM_MICROPHONE_KEY_UP = NativeMethods.WM_APP + 5;
     public const int WM_RUN_POSTED = NativeMethods.WM_APP + 6;
-    public const int WM_DICTATION_CANCEL = NativeMethods.WM_APP + 7;  // Esc swallowed by the keyboard hook while Listening
+    public const int WM_MICROPHONE_CANCEL = NativeMethods.WM_APP + 7;  // Esc swallowed by the keyboard hook while Listening
 
     // Resolved per message: the core is attached to the platform after this window exists.
     private readonly Func<SnipperCore> _core;
@@ -51,8 +51,8 @@ internal sealed class MessageWindow : NativeWindow
             case NativeMethods.WM_HOTKEY when (int)m.WParam == CancelKeyId:
                 _core().OnCancelKey();
                 break;
-            case NativeMethods.WM_HOTKEY when (int)m.WParam == DictationHotkeyId:
-                _core().OnDictationHotkey();
+            case NativeMethods.WM_HOTKEY when (int)m.WParam == MicrophoneHotkeyId:
+                _core().OnMicrophoneHotkey();
                 break;
             case NativeMethods.WM_HOTKEY when (int)m.WParam == PlaybackHotkeyId:
                 _core().OnPlaybackHotkey();
@@ -69,10 +69,10 @@ internal sealed class MessageWindow : NativeWindow
             case WM_EXIT_REQUESTED:
                 _core().OnExit();
                 break;
-            case WM_DICTATION_KEY_UP:
-                _core().OnDictationKeyUp();
+            case WM_MICROPHONE_KEY_UP:
+                _core().OnMicrophoneKeyUp();
                 break;
-            case WM_DICTATION_CANCEL:
+            case WM_MICROPHONE_CANCEL:
                 _core().OnCancelKey();
                 break;
             case WM_RUN_POSTED:

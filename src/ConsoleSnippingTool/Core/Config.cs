@@ -39,14 +39,14 @@ public sealed record Config
     // Hotkey and cap; the model, languages, prompt and Cleanup settings apply to both Sources.
 
     /// The Microphone Hotkey (dictation.hotkey).
-    public Hotkey DictationHotkey { get; init; } = Hotkey.DictationDefault;
+    public Hotkey MicrophoneHotkey { get; init; } = Hotkey.MicrophoneDefault;
 
     /// The Microphone cap (dictation.listeningTimeoutSeconds).
-    public int ListeningTimeoutSeconds { get; init; } = 120;
+    public int MicrophoneTimeoutSeconds { get; init; } = 120;
 
     // Ten minutes of speech is well under the Service's 25 MB ceiling (about 13 minutes at 16 kHz, ADR-0004).
-    private const int MinListeningTimeoutSeconds = 1;
-    private const int MaxListeningTimeoutSeconds = 600;
+    private const int MinMicrophoneTimeoutSeconds = 1;
+    private const int MaxMicrophoneTimeoutSeconds = 600;
 
     /// The Hotkey that opens Listening on Playback and, pressed again, is its Release.
     public Hotkey PlaybackHotkey { get; init; } = Hotkey.PlaybackDefault;
@@ -103,8 +103,8 @@ public sealed record Config
         },
         dictation = new
         {
-            hotkey = DictationHotkey.Text,
-            listeningTimeoutSeconds = ListeningTimeoutSeconds,
+            hotkey = MicrophoneHotkey.Text,
+            listeningTimeoutSeconds = MicrophoneTimeoutSeconds,
             playbackHotkey = PlaybackHotkey.Text,
             playbackTimeoutSeconds = PlaybackTimeoutSeconds,
             insert = Insert,
@@ -175,17 +175,17 @@ public sealed record Config
             var openAi = LoadObject(root, "openAi", problems);
             var openAiApiKey = LoadOptionalString(openAi, "openAi.apiKey", allowEmpty: false, problems);
             var dictation = LoadObject(root, "dictation", problems);
-            var dictationHotkey = LoadHotkey(dictation, "dictation.hotkey", defaults.DictationHotkey, problems);
-            if (dictationHotkey is { } parsed && parsed.Modifiers == hotkey.Modifiers && parsed.VirtualKey == hotkey.VirtualKey)
+            var microphoneHotkey = LoadHotkey(dictation, "dictation.hotkey", defaults.MicrophoneHotkey, problems);
+            if (microphoneHotkey is { } parsed && parsed.Modifiers == hotkey.Modifiers && parsed.VirtualKey == hotkey.VirtualKey)
             {
-                // Spec: two identical Hotkeys are a config problem and the Dictation one is reset, so both jobs stay
+                // Spec: two identical Hotkeys are a config problem and the Microphone one is reset, so both jobs stay
                 // reachable. The written dictation.hotkey is compared against the Capture Hotkey in effect, that is
                 // after its own fallback, and the message says so.
-                problems.Add($"{FileName}: dictation.hotkey {parsed.Text} is the same as the Capture Hotkey in effect; using default {defaults.DictationHotkey.Text}");
-                dictationHotkey = null;
+                problems.Add($"{FileName}: dictation.hotkey {parsed.Text} is the same as the Capture Hotkey in effect; using default {defaults.MicrophoneHotkey.Text}");
+                microphoneHotkey = null;
             }
 
-            var listeningTimeoutSeconds = LoadTimeout(dictation, "dictation.listeningTimeoutSeconds", MinListeningTimeoutSeconds, MaxListeningTimeoutSeconds, defaults.ListeningTimeoutSeconds, problems);
+            var microphoneTimeoutSeconds = LoadTimeout(dictation, "dictation.listeningTimeoutSeconds", MinMicrophoneTimeoutSeconds, MaxMicrophoneTimeoutSeconds, defaults.MicrophoneTimeoutSeconds, problems);
             // The two Playback fields came after Dictation, so a file written before them lacks them: missing, each takes
             // its default silently, and the upgrade costs nothing (Playback Dictation spec: user story 36).
             var playbackHotkey = LoadHotkey(dictation, "dictation.playbackHotkey", defaults.PlaybackHotkey, problems, optional: true);
@@ -195,7 +195,7 @@ public sealed record Config
             var clash = playbackHotkey switch
             {
                 { } written when SameKeys(written, hotkey) => "Capture Hotkey",
-                { } written when SameKeys(written, dictationHotkey ?? defaults.DictationHotkey) => "Microphone Hotkey",
+                { } written when SameKeys(written, microphoneHotkey ?? defaults.MicrophoneHotkey) => "Microphone Hotkey",
                 _ => null,
             };
             if (playbackHotkey is { } playback && clash is not null)
@@ -220,8 +220,8 @@ public sealed record Config
                 SentSound = sentSound,
                 DoneSound = doneSound,
                 OpenAiApiKey = openAiApiKey,
-                DictationHotkey = dictationHotkey ?? defaults.DictationHotkey,
-                ListeningTimeoutSeconds = listeningTimeoutSeconds,
+                MicrophoneHotkey = microphoneHotkey ?? defaults.MicrophoneHotkey,
+                MicrophoneTimeoutSeconds = microphoneTimeoutSeconds,
                 PlaybackHotkey = playbackHotkey ?? defaults.PlaybackHotkey,
                 PlaybackTimeoutSeconds = playbackTimeoutSeconds,
                 Insert = insert,

@@ -18,14 +18,14 @@ public class ConfigTests
     }
 
     [Fact]
-    public void A_configured_Dictation_Hotkey_is_registered_and_shown_in_the_tray_tooltip()
+    public void A_configured_Microphone_Hotkey_is_registered_and_shown_in_the_tray_tooltip()
     {
         var fake = new FakePlatform { ConfigText = ConfigJson.With(dictationHotkey: "ctrl+alt+d"), Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
 
         core.Start();
 
-        Assert.Contains("RegisterDictationHotkey(Ctrl+Alt+D)", fake.Calls);
+        Assert.Contains("RegisterMicrophoneHotkey(Ctrl+Alt+D)", fake.Calls);
         Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Alt+D, playback Ctrl+Win+A))", fake.Calls);
         Assert.Empty(Balloons(fake));
     }
@@ -66,7 +66,7 @@ public class ConfigTests
         core.Start();
 
         Assert.Contains("RegisterHotkey(Ctrl+Alt+D)", fake.Calls);
-        Assert.Contains("RegisterDictationHotkey(Ctrl+Win+X)", fake.Calls);
+        Assert.Contains("RegisterMicrophoneHotkey(Ctrl+Win+X)", fake.Calls);
         var balloon = Assert.Single(Balloons(fake));
         Assert.Equal("ShowBalloon(ConsoleSnippingTool: config.json: dictation.hotkey Ctrl+Alt+D is the same as the Capture Hotkey in effect; using default Ctrl+Win+X)", balloon);
     }
@@ -152,7 +152,7 @@ public class ConfigTests
             "TrySetSound(Done,BuiltIn)",
             "TrySetSound(Sent,BuiltIn)",
             "RegisterHotkey(Ctrl+Win+Z)",
-            "RegisterDictationHotkey(Ctrl+Win+X)",
+            "RegisterMicrophoneHotkey(Ctrl+Win+X)",
             "RegisterPlaybackHotkey(Ctrl+Win+A)",
             "SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X, playback Ctrl+Win+A))",
             "SetTrayMenuState(showEnabled:true,hideEnabled:false)",
@@ -302,8 +302,8 @@ public class ConfigTests
         var expected = new Config
         {
             OpenAiApiKey = "sk-test",
-            DictationHotkey = new Hotkey(HotkeyModifiers.Control | HotkeyModifiers.Alt, 0x44, "Ctrl+Alt+D"),
-            ListeningTimeoutSeconds = 45,
+            MicrophoneHotkey = new Hotkey(HotkeyModifiers.Control | HotkeyModifiers.Alt, 0x44, "Ctrl+Alt+D"),
+            MicrophoneTimeoutSeconds = 45,
             PlaybackHotkey = new Hotkey(HotkeyModifiers.Control | HotkeyModifiers.Alt, 0x4D, "Ctrl+Alt+M"),
             PlaybackTimeoutSeconds = 300,
             Insert = true,
@@ -358,7 +358,7 @@ public class ConfigTests
         var (config, problems) = Config.Load(ConfigJson.With(listeningTimeoutSeconds: seconds));
 
         Assert.Empty(problems);
-        Assert.Equal(int.Parse(seconds), config.ListeningTimeoutSeconds);
+        Assert.Equal(int.Parse(seconds), config.MicrophoneTimeoutSeconds);
     }
 
     [Theory]
@@ -441,13 +441,13 @@ public class ConfigTests
     }
 
     [Fact]
-    public void Identical_Hotkeys_are_reported_once_and_the_Dictation_one_falls_back_to_its_default()
+    public void Identical_Hotkeys_are_reported_once_and_the_Microphone_one_falls_back_to_its_default()
     {
         var (config, problems) = Config.Load(ConfigJson.With(hotkey: "Ctrl+Alt+D", dictationHotkey: "ctrl+alt+d"));
 
         Assert.Equal(["config.json: dictation.hotkey Ctrl+Alt+D is the same as the Capture Hotkey in effect; using default Ctrl+Win+X"], problems);
         Assert.Equal("Ctrl+Alt+D", config.Hotkey.Text);
-        Assert.Equal(Hotkey.DictationDefault, config.DictationHotkey);
+        Assert.Equal(Hotkey.MicrophoneDefault, config.MicrophoneHotkey);
     }
 
     [Fact]
@@ -462,7 +462,7 @@ public class ConfigTests
         ];
         Assert.Equal(expected, problems);
         Assert.Equal(Hotkey.Default, config.Hotkey);
-        Assert.Equal(Hotkey.DictationDefault, config.DictationHotkey);
+        Assert.Equal(Hotkey.MicrophoneDefault, config.MicrophoneHotkey);
     }
 
     [Fact]
@@ -524,7 +524,7 @@ public class ConfigTests
         var (config, problems) = Config.Load(ConfigJson.With(dictationHotkey: "Ctrl+Alt+D", playbackHotkey: "ctrl+alt+d"));
 
         Assert.Equal(["config.json: dictation.playbackHotkey Ctrl+Alt+D is the same as the Microphone Hotkey in effect; using default Ctrl+Win+A"], problems);
-        Assert.Equal("Ctrl+Alt+D", config.DictationHotkey.Text);
+        Assert.Equal("Ctrl+Alt+D", config.MicrophoneHotkey.Text);
         Assert.Equal(Hotkey.PlaybackDefault, config.PlaybackHotkey);
     }
 
@@ -548,7 +548,7 @@ public class ConfigTests
             "config.json: dictation.playbackHotkey Ctrl+Win+X is the same as the Microphone Hotkey in effect; using default Ctrl+Win+A",
         ];
         Assert.Equal(expected, problems);
-        Assert.Equal(Hotkey.DictationDefault, config.DictationHotkey);
+        Assert.Equal(Hotkey.MicrophoneDefault, config.MicrophoneHotkey);
         Assert.Equal(Hotkey.PlaybackDefault, config.PlaybackHotkey);
     }
 
@@ -645,8 +645,8 @@ public class ConfigTests
     {
         var config = new Config();
 
-        Assert.Equal("Ctrl+Win+X", config.DictationHotkey.Text);
-        Assert.Equal(120, config.ListeningTimeoutSeconds);
+        Assert.Equal("Ctrl+Win+X", config.MicrophoneHotkey.Text);
+        Assert.Equal(120, config.MicrophoneTimeoutSeconds);
         Assert.False(config.Insert);
         Assert.Equal("gpt-transcribe", config.TranscriptionModel);
         Assert.Equal(new LanguageList("en", "ru"), config.Languages);
@@ -658,10 +658,10 @@ public class ConfigTests
     }
 
     [Fact]
-    public void The_default_Dictation_Hotkey_is_Ctrl_Win_X()
+    public void The_default_Microphone_Hotkey_is_Ctrl_Win_X()
     {
-        Assert.Equal(new Hotkey(HotkeyModifiers.Control | HotkeyModifiers.Win, 0x58, "Ctrl+Win+X"), Hotkey.DictationDefault);
-        Assert.Equal("Ctrl+Win+X", Hotkey.DictationDefault.Text);
+        Assert.Equal(new Hotkey(HotkeyModifiers.Control | HotkeyModifiers.Win, 0x58, "Ctrl+Win+X"), Hotkey.MicrophoneDefault);
+        Assert.Equal("Ctrl+Win+X", Hotkey.MicrophoneDefault.Text);
     }
 
     [Fact]

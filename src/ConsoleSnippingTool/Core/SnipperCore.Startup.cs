@@ -9,7 +9,7 @@ public sealed partial class SnipperCore
         ResolveApiKey();
         SetUpSounds();
         RegisterHotkey();
-        RegisterDictationHotkey();
+        RegisterMicrophoneHotkey();
         RegisterPlaybackHotkey();
         SetUpTray();
     }
@@ -97,15 +97,15 @@ public sealed partial class SnipperCore
         Report(HotkeyTaken(_config.Hotkey));
     }
 
-    /// A taken Dictation Hotkey leaves Capture working (spec: user story 37).
-    private void RegisterDictationHotkey()
+    /// A taken Microphone Hotkey leaves Capture working (spec: user story 37).
+    private void RegisterMicrophoneHotkey()
     {
-        if (_platform.RegisterDictationHotkey(_config.DictationHotkey))
+        if (_platform.RegisterMicrophoneHotkey(_config.MicrophoneHotkey))
         {
             return;
         }
 
-        Report(HotkeyTaken(_config.DictationHotkey));
+        Report(HotkeyTaken(_config.MicrophoneHotkey));
     }
 
     /// A taken Playback Hotkey leaves Capture and the Microphone working (spec: user story 38). The default Ctrl+Win+A
@@ -126,7 +126,7 @@ public sealed partial class SnipperCore
     private void SetUpTray()
     {
         // At most 117 characters with three of the longest Hotkeys (Ctrl+Alt+Shift+Win+F24), under the tray's 127.
-        _platform.SetTrayTooltip($"{ToolName} (capture {_config.Hotkey.Text}, dictate {_config.DictationHotkey.Text}, playback {_config.PlaybackHotkey.Text})");
+        _platform.SetTrayTooltip($"{ToolName} (capture {_config.Hotkey.Text}, dictate {_config.MicrophoneHotkey.Text}, playback {_config.PlaybackHotkey.Text})");
         _platform.SetTrayMenuState(showEnabled: true, hideEnabled: false);
     }
 
@@ -154,7 +154,7 @@ public sealed partial class SnipperCore
         // No-op while the Console is hidden; lets the adapter detach its console handler before the process goes.
         OnHide();
         _platform.UnregisterHotkey();
-        _platform.UnregisterDictationHotkey();
+        _platform.UnregisterMicrophoneHotkey();
         _platform.UnregisterPlaybackHotkey();
         _platform.RemoveTrayIcon();
         _platform.Exit();

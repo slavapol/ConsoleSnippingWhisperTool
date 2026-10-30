@@ -17,8 +17,8 @@ public interface IPlatform
     void UnregisterHotkey();
     void RegisterCancelKey();              // Esc, only while Armed (while Listening on the Microphone the keyboard hook takes Esc)
     void UnregisterCancelKey();
-    bool RegisterDictationHotkey(Hotkey hotkey); // the Microphone Hotkey; false when another app owns it
-    void UnregisterDictationHotkey();
+    bool RegisterMicrophoneHotkey(Hotkey hotkey); // the Microphone Hotkey; false when another app owns it
+    void UnregisterMicrophoneHotkey();
     bool RegisterPlaybackHotkey(Hotkey hotkey);  // posts OnPlaybackHotkey on each press, never on autorepeat; false when another app owns it
     void UnregisterPlaybackHotkey();
 
@@ -32,7 +32,7 @@ public interface IPlatform
     bool TryCaptureToClipboard(Region region); // copies the screen region and sets PNG + DIB; false on clipboard failure after retries
 
     // Dictation
-    void InstallKeyboardHook(Hotkey chord);   // posts OnDictationKeyUp once when any key of the chord goes up, and OnCancelKey for Esc; swallows only Esc
+    void InstallKeyboardHook(Hotkey chord);   // posts OnMicrophoneKeyUp once when any key of the chord goes up, and OnCancelKey for Esc; swallows only Esc
     void RemoveKeyboardHook();
     bool TryOpenSource(DictationSource source, out string deviceName); // the Source's default communication endpoint; false when it cannot be opened; deviceName is its friendly name, empty when unknown
     AudioClip CloseSource();                  // stops capturing and returns everything recorded since TryOpenSource

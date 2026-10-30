@@ -21,9 +21,9 @@ public class DictationTests
     {
         var (fake, core) = Started();
 
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         Advance(TimeSpan.FromSeconds(3));
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
         Advance(Ms(900));
         core.OnTranscript(1, "hello world", ["en"]);
 
@@ -55,11 +55,11 @@ public class DictationTests
     // Listening
 
     [Fact]
-    public void Dictation_Hotkey_while_Idle_opens_the_microphone_starts_the_cap_installs_the_hook_warms_up_the_Service_and_plays_Ready_in_that_order()
+    public void Microphone_Hotkey_while_Idle_opens_the_microphone_starts_the_cap_installs_the_hook_warms_up_the_Service_and_plays_Ready_in_that_order()
     {
         var (fake, core) = Started();
 
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
 
         string[] expected =
         [
@@ -82,7 +82,7 @@ public class DictationTests
             DeviceName = "Headset Microphone (Jabra Evolve2 65)",
         });
 
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
 
         Assert.Equal(["09:05:07 Listening (microphone: Headset Microphone (Jabra Evolve2 65))"], Logged(fake, core));
     }
@@ -92,17 +92,17 @@ public class DictationTests
     {
         var (fake, core) = Started(new FakePlatform { Environment = ApiKey.InEnvironment, DeviceName = "" });
 
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
 
         Assert.Equal(["09:05:07 Listening (microphone)"], Logged(fake, core));
     }
 
     [Fact]
-    public void Dictation_Hotkey_without_an_API_key_repeats_the_startup_balloon_and_never_opens_the_microphone()
+    public void Microphone_Hotkey_without_an_API_key_repeats_the_startup_balloon_and_never_opens_the_microphone()
     {
         var (fake, core) = Started(new FakePlatform()); // no key in config.json or the environment
 
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
 
         Assert.Equal(["ShowBalloon(ConsoleSnippingTool: Dictation needs an API key: set openAi.apiKey in config.json or the OPENAI_API_KEY environment variable)"], fake.Calls);
     }
@@ -112,7 +112,7 @@ public class DictationTests
     {
         var (fake, core) = Started(new FakePlatform { Environment = ApiKey.InEnvironment, SourceOpens = false });
 
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
 
         string[] expected = ["TryOpenSource(Microphone)", "ShowBalloon(ConsoleSnippingTool: No microphone found)"];
         Assert.Equal(expected, fake.Calls);
@@ -128,7 +128,7 @@ public class DictationTests
             Environment = ApiKey.InEnvironment,
         });
 
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
 
         Assert.Contains("StartTimer(45s)", fake.Calls);
         Assert.Contains("InstallKeyboardHook(Ctrl+Alt+D)", fake.Calls);
@@ -142,7 +142,7 @@ public class DictationTests
         var (fake, core) = Listening();
         Advance(TimeSpan.FromSeconds(3));
 
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
 
         string[] expected =
         [
@@ -162,7 +162,7 @@ public class DictationTests
         var (fake, core) = Listening();
         Advance(Ms(499));
 
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
 
         string[] expected = ["RemoveKeyboardHook()", "StopTimer()", "CloseSource()"];
         Assert.Equal(expected, fake.Calls);
@@ -175,7 +175,7 @@ public class DictationTests
         var (fake, core) = Listening();
         Advance(Ms(500));
 
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
 
         Assert.Contains("PlaySound(Sent)", fake.Calls);
         Assert.Contains("BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:21s)", fake.Calls);
@@ -189,7 +189,7 @@ public class DictationTests
         fake.SourceClip = new AudioClip(new byte[(int)(0.3 * 16000) * 2], 16000);
         Advance(TimeSpan.FromSeconds(3));
 
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
 
         Assert.Contains("PlaySound(Sent)", fake.Calls);
         Assert.Contains("BeginTranscription(seq:1,clip:0.3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:21s)", fake.Calls);
@@ -204,11 +204,11 @@ public class DictationTests
             Environment = ApiKey.InEnvironment,
             OpeningSource = () => Advance(Ms(300)),
         });
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         fake.Calls.Clear();
         Advance(Ms(300));
 
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
 
         string[] expected =
         [
@@ -252,7 +252,7 @@ public class DictationTests
             Environment = ApiKey.InEnvironment,
             SourceClip = new AudioClip(new byte[(int)(0.4 * 16000) * 2], 16000),
         });
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         fake.Calls.Clear();
         Advance(Ms(400));
 
@@ -275,7 +275,7 @@ public class DictationTests
         string[] expected = ["RemoveKeyboardHook()", "StopTimer()", "CloseSource()"];
         Assert.Equal(expected, fake.Calls);
         fake.Calls.Clear();
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         Assert.Contains("PlaySound(Ready)", fake.Calls);
         Assert.Equal(["09:05:07 Listening (microphone: Test Device)", "09:05:10 Discarded (Esc)", "09:05:10 Listening (microphone: Test Device)"], Logged(fake, core));
     }
@@ -283,12 +283,12 @@ public class DictationTests
     // One job at a time
 
     [Fact]
-    public void The_held_chord_repeating_the_Dictation_Hotkey_while_Listening_touches_nothing_and_logs_nothing()
+    public void The_held_chord_repeating_the_Microphone_Hotkey_while_Listening_touches_nothing_and_logs_nothing()
     {
         var (fake, core) = Listening();
 
-        core.OnDictationHotkey();
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
+        core.OnMicrophoneHotkey();
 
         Assert.Empty(fake.Calls);
         Assert.Equal(["09:05:07 Listening (microphone: Test Device)"], Logged(fake, core));
@@ -302,7 +302,7 @@ public class DictationTests
     {
         var (fake, core) = In(state);
 
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
 
         Assert.Empty(fake.Calls);
         Assert.Equal($"09:05:10 {line}", Logged(fake, core)[^1]);
@@ -337,7 +337,7 @@ public class DictationTests
     {
         var (fake, core) = Started();
 
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
 
         Assert.Empty(fake.Calls);
     }
@@ -349,7 +349,7 @@ public class DictationTests
 
         core.OnCancelKey();
         core.OnTimerElapsed();
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
 
         Assert.Empty(fake.Calls);
         Assert.Equal(["09:05:07 Listening (microphone: Test Device)", "09:05:10 Sent 3.0 s of audio"], Logged(fake, core));
@@ -416,7 +416,7 @@ public class DictationTests
         core.OnTranscript(1, silence, []);
 
         Assert.Empty(fake.Calls);
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         Assert.Contains("PlaySound(Ready)", fake.Calls);
         Assert.Equal(["09:05:07 Listening (microphone: Test Device)", "09:05:10 Sent 3.0 s of audio", "09:05:10 Nothing heard", "09:05:10 Listening (microphone: Test Device)"], Logged(fake, core));
     }
@@ -427,9 +427,9 @@ public class DictationTests
         // The Service may name a language even for a Transcript it heard nothing in; it must not leak into the next one.
         var (fake, core) = In("Transcribing");
         core.OnTranscript(1, "", ["ru"]);
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         Advance(TimeSpan.FromSeconds(3));
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
         Advance(Ms(900));
 
         core.OnTranscript(2, "hello world", []);
@@ -447,7 +447,7 @@ public class DictationTests
         core.OnTranscriptionFailed(1, "401 Unauthorized: Incorrect API key provided");
 
         Assert.Equal(["ShowBalloon(ConsoleSnippingTool: Dictation failed: 401 Unauthorized: Incorrect API key provided)"], fake.Calls);
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         Assert.Contains("PlaySound(Ready)", fake.Calls);
         Assert.Equal("09:05:10 Dictation failed: 401 Unauthorized: Incorrect API key provided", Logged(fake, core)[^2]);
     }
@@ -466,7 +466,7 @@ public class DictationTests
             "ShowBalloon(ConsoleSnippingTool: Clipboard refused the Transcript; nothing was copied)",
         ];
         Assert.Equal(expected, fake.Calls);
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         Assert.Contains("PlaySound(Ready)", fake.Calls);
         Assert.Equal("09:05:10 Clipboard refused the Transcript; nothing was copied", Logged(fake, core)[^2]);
     }
@@ -584,11 +584,11 @@ public class DictationTests
     {
         var (fake, core) = In("Transcribing");
         core.OnTranscript(1, "first", []);
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         Advance(TimeSpan.FromSeconds(3));
         fake.Calls.Clear();
 
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
 
         Assert.Contains("BeginTranscription(seq:2,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:21s)", fake.Calls);
     }
@@ -598,9 +598,9 @@ public class DictationTests
     {
         var (fake, core) = In("Transcribing");
         core.OnTranscriptionFailed(1, "timeout");
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         Advance(TimeSpan.FromSeconds(3));
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
         fake.Calls.Clear();
 
         core.OnTranscript(1, "late words", []);
@@ -643,7 +643,7 @@ public class DictationTests
             "StopTimer()",
             "CloseSource()",
             "UnregisterHotkey()",
-            "UnregisterDictationHotkey()",
+            "UnregisterMicrophoneHotkey()",
             "UnregisterPlaybackHotkey()",
             "RemoveTrayIcon()",
             "Exit()",
@@ -660,7 +660,7 @@ public class DictationTests
         core.OnExit();
         core.OnTranscript(1, "words after the tool closed", []);
 
-        string[] expected = ["UnregisterHotkey()", "UnregisterDictationHotkey()", "UnregisterPlaybackHotkey()", "RemoveTrayIcon()", "Exit()"];
+        string[] expected = ["UnregisterHotkey()", "UnregisterMicrophoneHotkey()", "UnregisterPlaybackHotkey()", "RemoveTrayIcon()", "Exit()"];
         Assert.Equal(expected, fake.Calls);
         Assert.Equal(["09:05:07 Listening (microphone: Test Device)", "09:05:10 Sent 3.0 s of audio", "09:05:10 Dictation abandoned (exit)"], Logged(fake, core));
     }
@@ -675,10 +675,10 @@ public class DictationTests
             ConfigText = ConfigJson.With(model: "\"gpt-transcribe-2\"", languages: "[\"en\", \"de\"]", prompt: "\"ACME, Kubernetes\"", cleanup: "true"),
             Environment = ApiKey.InEnvironment,
         });
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         Advance(TimeSpan.FromSeconds(3));
 
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
         core.OnTranscript(1, "deploy to kubernetes", []);
         core.OnShow();
 
@@ -704,10 +704,10 @@ public class DictationTests
             Environment = ApiKey.InEnvironment,
             SourceClip = new AudioClip(new byte[seconds * 16000 * 2], 16000),
         });
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         Advance(TimeSpan.FromSeconds(seconds));
 
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
         core.OnTranscript(1, "hello world", []);
 
         Assert.Contains($"BeginTranscription(seq:1,clip:{seconds}s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:{timeout})", fake.Calls);
@@ -718,10 +718,10 @@ public class DictationTests
     public void An_empty_language_list_sends_no_language_hint()
     {
         var (fake, core) = Started(new FakePlatform { ConfigText = ConfigJson.With(languages: "[]"), Environment = ApiKey.InEnvironment });
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         Advance(TimeSpan.FromSeconds(3));
 
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
 
         Assert.Contains("BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:none,prompt:null,timeout:21s)", fake.Calls);
         Assert.Empty(fake.LastTranscriptionRequest!.Languages);
@@ -736,9 +736,9 @@ public class DictationTests
     private (FakePlatform Fake, SnipperCore Core) TranscribingWith(string configJson)
     {
         var (fake, core) = Started(new FakePlatform { ConfigText = configJson, Environment = ApiKey.InEnvironment });
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         Advance(TimeSpan.FromSeconds(3));
-        core.OnDictationKeyUp();
+        core.OnMicrophoneKeyUp();
         fake.Calls.Clear();
         return (fake, core);
     }
@@ -753,11 +753,11 @@ public class DictationTests
         return (fake, core);
     }
 
-    /// A started Instance that has just entered Listening on the Dictation Hotkey, with the entry calls cleared away.
+    /// A started Instance that has just entered Listening on the Microphone Hotkey, with the entry calls cleared away.
     private (FakePlatform Fake, SnipperCore Core) Listening()
     {
         var (fake, core) = Started();
-        core.OnDictationHotkey();
+        core.OnMicrophoneHotkey();
         fake.Calls.Clear();
         return (fake, core);
     }
@@ -780,13 +780,13 @@ public class DictationTests
                 Advance(threeSeconds);
                 break;
             case "Listening":
-                core.OnDictationHotkey();
+                core.OnMicrophoneHotkey();
                 Advance(threeSeconds);
                 break;
             case "Transcribing":
-                core.OnDictationHotkey();
+                core.OnMicrophoneHotkey();
                 Advance(threeSeconds);
-                core.OnDictationKeyUp();
+                core.OnMicrophoneKeyUp();
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(state), state, null);
