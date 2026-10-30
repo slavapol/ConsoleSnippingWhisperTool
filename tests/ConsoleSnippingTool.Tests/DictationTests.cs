@@ -38,7 +38,7 @@ public class DictationTests
             "StopTimer()",
             "CloseMicrophone()",
             "PlaySound(Sent)",
-            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,language:null,prompt:null)",
+            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null)",
             "TryInsertText(hello world)",
             "PlaySound(Done)",
         ];
@@ -126,7 +126,7 @@ public class DictationTests
             "StopTimer()",
             "CloseMicrophone()",
             "PlaySound(Sent)",
-            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,language:null,prompt:null)",
+            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null)",
         ];
         Assert.Equal(expected, fake.Calls);
         Assert.Equal(["09:05:07 Listening", "09:05:10 Sent 3.0 s of audio"], Logged(fake, core));
@@ -154,7 +154,7 @@ public class DictationTests
         core.OnDictationKeyUp();
 
         Assert.Contains("PlaySound(Sent)", fake.Calls);
-        Assert.Contains("BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,language:null,prompt:null)", fake.Calls);
+        Assert.Contains("BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null)", fake.Calls);
     }
 
     [Fact]
@@ -178,7 +178,7 @@ public class DictationTests
             "StopTimer()",
             "CloseMicrophone()",
             "PlaySound(Sent)",
-            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,language:null,prompt:null)",
+            "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null)",
         ];
         Assert.Equal(expected, fake.Calls);
         Assert.DoesNotContain("09:05:07 Tap ignored", Logged(fake, core));
@@ -199,7 +199,7 @@ public class DictationTests
             "StopTimer()",
             "CloseMicrophone()",
             "PlaySound(Sent)",
-            "BeginTranscription(seq:1,clip:120s,model:gpt-transcribe,language:null,prompt:null)",
+            "BeginTranscription(seq:1,clip:120s,model:gpt-transcribe,languages:en|ru,prompt:null)",
         ];
         Assert.Equal(expected, fake.Calls);
         Assert.Equal(["09:05:07 Listening", "09:07:07 Sent 120.0 s of audio (cap)"], Logged(fake, core));
@@ -221,7 +221,7 @@ public class DictationTests
         core.OnTimerElapsed();
 
         Assert.Contains("PlaySound(Sent)", fake.Calls);
-        Assert.Contains("BeginTranscription(seq:1,clip:0.4s,model:gpt-transcribe,language:null,prompt:null)", fake.Calls);
+        Assert.Contains("BeginTranscription(seq:1,clip:0.4s,model:gpt-transcribe,languages:en|ru,prompt:null)", fake.Calls);
     }
 
     // Discard
@@ -480,7 +480,7 @@ public class DictationTests
 
         core.OnDictationKeyUp();
 
-        Assert.Contains("BeginTranscription(seq:2,clip:3s,model:gpt-transcribe,language:null,prompt:null)", fake.Calls);
+        Assert.Contains("BeginTranscription(seq:2,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null)", fake.Calls);
     }
 
     [Fact]
@@ -557,11 +557,11 @@ public class DictationTests
     // The request
 
     [Fact]
-    public void The_request_carries_the_model_language_and_prompt_from_config_and_the_key_from_the_environment_which_never_appears_in_a_call()
+    public void The_request_carries_the_model_languages_and_prompt_from_config_and_the_key_from_the_environment_which_never_appears_in_a_call()
     {
         var (fake, core) = Started(new FakePlatform
         {
-            ConfigText = ConfigJson.With(model: "\"gpt-transcribe-2\"", language: "\"en\"", prompt: "\"ACME, Kubernetes\"", cleanup: "true"),
+            ConfigText = ConfigJson.With(model: "\"gpt-transcribe-2\"", languages: "[\"en\", \"de\"]", prompt: "\"ACME, Kubernetes\"", cleanup: "true"),
             Environment = ApiKey.InEnvironment,
         });
         core.OnDictationHotkey();
@@ -571,10 +571,27 @@ public class DictationTests
         core.OnTranscript(1, "deploy to kubernetes");
         core.OnShow();
 
-        Assert.Contains("BeginTranscription(seq:1,clip:3s,model:gpt-transcribe-2,language:en,prompt:ACME, Kubernetes)", fake.Calls);
-        Assert.Equal(new TranscriptionRequest(ApiKey.Value, "gpt-transcribe-2", "en", "ACME, Kubernetes"), fake.LastTranscriptionRequest);
+        Assert.Contains("BeginTranscription(seq:1,clip:3s,model:gpt-transcribe-2,languages:en|de,prompt:ACME, Kubernetes)", fake.Calls);
+        var request = Assert.IsType<TranscriptionRequest>(fake.LastTranscriptionRequest);
+        Assert.Equal(ApiKey.Value, request.ApiKey);
+        Assert.Equal("gpt-transcribe-2", request.Model);
+        Assert.Equal(["en", "de"], request.Languages);
+        Assert.Equal("ACME, Kubernetes", request.Prompt);
         Assert.Equal(ApiKey.Value, fake.LastCleanupRequest?.ApiKey);
         Assert.DoesNotContain(fake.Calls, call => call.Contains(ApiKey.Value, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void An_empty_language_list_sends_no_language_hint()
+    {
+        var (fake, core) = Started(new FakePlatform { ConfigText = ConfigJson.With(languages: "[]"), Environment = ApiKey.InEnvironment });
+        core.OnDictationHotkey();
+        Advance(TimeSpan.FromSeconds(3));
+
+        core.OnDictationKeyUp();
+
+        Assert.Contains("BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:none,prompt:null)", fake.Calls);
+        Assert.Empty(fake.LastTranscriptionRequest!.Languages);
     }
 
     // Helpers

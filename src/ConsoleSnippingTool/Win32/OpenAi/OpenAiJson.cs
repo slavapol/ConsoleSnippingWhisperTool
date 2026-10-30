@@ -9,10 +9,10 @@ namespace ConsoleSnippingTool.Win32.OpenAi;
 public static class OpenAiJson
 {
     /// The multipart form of the transcription request: the WAV as the file "dictation.wav", the model, response_format
-    /// json so the Transcript comes back as the "text" field, the language as languages[] (the gpt-transcribe parameter;
-    /// the singular "language" belongs to the models being shut down) and the prompt. Takes the fields, not the
-    /// TranscriptionRequest, so the key cannot end up in a form.
-    public static MultipartFormDataContent TranscriptionForm(byte[] wav, string model, string? language, string? prompt)
+    /// json so the Transcript comes back as the "text" field, one languages[] part per expected language (the
+    /// gpt-transcribe parameter; the singular "language" belongs to the models being shut down), none for an empty
+    /// list, and the prompt. Takes the fields, not the TranscriptionRequest, so the key cannot end up in a form.
+    public static MultipartFormDataContent TranscriptionForm(byte[] wav, string model, IReadOnlyList<string> languages, string? prompt)
     {
         var file = new ByteArrayContent(wav);
         file.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
@@ -22,9 +22,9 @@ public static class OpenAiJson
             Part(new StringContent(model), "model"),
             Part(new StringContent("json"), "response_format"),
         };
-        if (language is not null)
+        foreach (var code in languages)
         {
-            form.Add(Part(new StringContent(language), "languages[]"));
+            form.Add(Part(new StringContent(code), "languages[]"));
         }
 
         if (prompt is not null)

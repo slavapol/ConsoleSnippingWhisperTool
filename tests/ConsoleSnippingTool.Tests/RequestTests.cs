@@ -7,22 +7,22 @@ namespace ConsoleSnippingTool.Tests;
 public class RequestTests
 {
     [Fact]
-    public void A_TranscriptionRequest_prints_its_model_language_and_prompt_but_never_its_key()
+    public void A_TranscriptionRequest_prints_its_model_languages_and_prompt_but_never_its_key()
     {
-        var request = new TranscriptionRequest("sk-secret", "gpt-transcribe", "en", "ACME, Kubernetes");
+        var request = new TranscriptionRequest("sk-secret", "gpt-transcribe", ["en", "ru"], "ACME, Kubernetes");
 
         var text = $"{request}";
 
-        Assert.Equal("TranscriptionRequest { Model = gpt-transcribe, Language = en, Prompt = ACME, Kubernetes }", text);
+        Assert.Equal("TranscriptionRequest { Model = gpt-transcribe, Languages = en, ru, Prompt = ACME, Kubernetes }", text);
         Assert.DoesNotContain("sk-secret", text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_TranscriptionRequest_prints_null_for_an_unset_language_and_prompt()
+    public void A_TranscriptionRequest_prints_none_for_an_empty_language_list_and_null_for_an_unset_prompt()
     {
-        var request = new TranscriptionRequest("sk-secret", "gpt-transcribe", null, null);
+        var request = new TranscriptionRequest("sk-secret", "gpt-transcribe", [], null);
 
-        Assert.Equal("TranscriptionRequest { Model = gpt-transcribe, Language = null, Prompt = null }", request.ToString());
+        Assert.Equal("TranscriptionRequest { Model = gpt-transcribe, Languages = none, Prompt = null }", request.ToString());
     }
 
     [Fact]

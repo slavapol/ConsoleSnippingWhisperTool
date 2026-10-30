@@ -15,7 +15,7 @@ namespace ConsoleSnippingTool.Tests;
 //   Timer            StartTimer(30s)  StopTimer()
 //   Capture          InstallMouseHook()  RemoveMouseHook()  TryCaptureToClipboard(5,10,6x11)
 //   Dictation        InstallKeyboardHook(Ctrl+Win+X)  RemoveKeyboardHook()  TryOpenMicrophone()  CloseMicrophone()  WarmUpService()
-//                    BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,language:null,prompt:null)
+//                    BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null)
 //                    BeginCleanup(seq:1,model:gpt-6-luna,transcript:<text verbatim>)  TryInsertText(<text verbatim>)
 //                    ReadEnvironmentVariable(OPENAI_API_KEY)
 //   Sounds           TrySetSound(Ready,BuiltIn)  TrySetSound(Done,None)  TrySetSound(Ready,File(click.wav))  PlaySound(Done)
@@ -26,7 +26,8 @@ namespace ConsoleSnippingTool.Tests;
 //
 // Formats: a TimeSpan is whole or fractional seconds followed by "s" (30s, 0.5s); a Hotkey is its Text; a Region is
 // Left,Top,WidthxHeight; an AudioClip is its Duration as a TimeSpan (3s); a SoundSource is its ToString (BuiltIn, None
-// or File(path)); a bool is lowercase true/false; a null string is the word null. An API key is never recorded:
+// or File(path)); a bool is lowercase true/false; a null string is the word null; a language list is its codes joined
+// by | (en|ru), or the word none when it is empty. An API key is never recorded:
 // WarmUpService, BeginTranscription and BeginCleanup leave it out of Calls, and LastTranscriptionRequest and
 // LastCleanupRequest hold the full requests for a test that asserts the key or the Cleanup instructions.
 public sealed class FakePlatform : IPlatform
@@ -182,7 +183,7 @@ public sealed class FakePlatform : IPlatform
 
     public void BeginTranscription(int sequence, AudioClip clip, TranscriptionRequest request)
     {
-        Record($"BeginTranscription(seq:{sequence},clip:{Seconds(clip.Duration)},model:{request.Model},language:{Text(request.Language)},prompt:{Text(request.Prompt)})");
+        Record($"BeginTranscription(seq:{sequence},clip:{Seconds(clip.Duration)},model:{request.Model},languages:{Codes(request.Languages)},prompt:{Text(request.Prompt)})");
         LastTranscriptionRequest = request;
     }
 
@@ -245,4 +246,6 @@ public sealed class FakePlatform : IPlatform
     private static string Bool(bool value) => value ? "true" : "false";
 
     private static string Text(string? value) => value ?? "null";
+
+    private static string Codes(IReadOnlyList<string> languages) => languages.Count == 0 ? "none" : string.Join("|", languages);
 }

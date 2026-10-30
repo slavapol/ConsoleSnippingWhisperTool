@@ -102,7 +102,7 @@ public sealed partial class SnipperCore
     }
 
     private TranscriptionRequest BuildTranscriptionRequest() =>
-        new(ApiKey, _config.TranscriptionModel, _config.Language, _config.Prompt);
+        new(ApiKey, _config.TranscriptionModel, _config.Languages, _config.Prompt);
 
     /// The key Listening was entered with; a Dictation never gets past the Hotkey without one, so it is never missing
     /// by the time a request is built.

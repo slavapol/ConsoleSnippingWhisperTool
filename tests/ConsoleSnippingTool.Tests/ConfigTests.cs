@@ -214,7 +214,7 @@ public class ConfigTests
             "config.json: dictation.listeningTimeoutSeconds is missing; using default 120",
             "config.json: dictation.insert is missing; using default false",
             "config.json: dictation.model is missing; using default gpt-transcribe",
-            "config.json: dictation.language is missing; using default null",
+            "config.json: dictation.languages is missing; using default en, ru",
             "config.json: dictation.prompt is missing; using default null",
             "config.json: dictation.cleanup is missing; using default false",
             "config.json: dictation.cleanupModel is missing; using default gpt-6-luna",
@@ -232,7 +232,7 @@ public class ConfigTests
             listeningTimeoutSeconds: "45",
             insert: "true",
             model: "\"gpt-transcribe-2\"",
-            language: "\"en\"",
+            languages: "[\"en\", \"de\"]",
             prompt: "\"ACME, Kubernetes\"",
             cleanup: "true",
             cleanupModel: "\"gpt-7-mini\"");
@@ -247,7 +247,7 @@ public class ConfigTests
             ListeningTimeoutSeconds = 45,
             Insert = true,
             TranscriptionModel = "gpt-transcribe-2",
-            Language = "en",
+            Languages = new LanguageList("en", "de"),
             Prompt = "ACME, Kubernetes",
             Cleanup = true,
             CleanupModel = "gpt-7-mini",
@@ -264,6 +264,29 @@ public class ConfigTests
 
         Assert.Empty(problems);
         Assert.Equal(expected, config.Insert);
+    }
+
+    [Theory]
+    [InlineData("[\"en\", \"de\"]", "en", "de")]
+    [InlineData("[\"ru\"]", "ru")]
+    public void Dictation_languages_are_honoured_as_listed(string languages, params string[] expected)
+    {
+        var (config, problems) = Config.Load(ConfigJson.With(languages: languages));
+
+        Assert.Empty(problems);
+        Assert.Equal(new LanguageList(expected), config.Languages);
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("[]")]
+    public void A_null_or_empty_language_list_means_no_hint_and_is_not_a_problem(string languages)
+    {
+        var (config, problems) = Config.Load(ConfigJson.With(languages: languages));
+
+        Assert.Empty(problems);
+        Assert.Equal(LanguageList.None, config.Languages);
+        Assert.Empty(config.Languages);
     }
 
     [Theory]
@@ -290,8 +313,9 @@ public class ConfigTests
         { ConfigJson.With(insert: "\"yes\""), "config.json: dictation.insert \"yes\" is not true or false; using default false" },
         { ConfigJson.With(model: "\"\""), "config.json: dictation.model \"\" is not a non-empty string; using default gpt-transcribe" },
         { ConfigJson.With(model: "5"), "config.json: dictation.model 5 is not a non-empty string; using default gpt-transcribe" },
-        { ConfigJson.With(language: "\" \""), "config.json: dictation.language \" \" is not null or a non-empty string; using default null" },
-        { ConfigJson.With(language: "true"), "config.json: dictation.language true is not null or a non-empty string; using default null" },
+        { ConfigJson.With(languages: "\"en\""), "config.json: dictation.languages \"en\" is not null or an array of non-empty strings; using default en, ru" },
+        { ConfigJson.With(languages: "[\"en\", 5]"), "config.json: dictation.languages [\"en\", 5] is not null or an array of non-empty strings; using default en, ru" },
+        { ConfigJson.With(languages: "[\"en\", \"\"]"), "config.json: dictation.languages [\"en\", \"\"] is not null or an array of non-empty strings; using default en, ru" },
         { ConfigJson.With(prompt: "5"), "config.json: dictation.prompt 5 is not null or a string; using default null" },
         { ConfigJson.With(cleanup: "\"yes\""), "config.json: dictation.cleanup \"yes\" is not true or false; using default false" },
         { ConfigJson.With(cleanupModel: "\"\""), "config.json: dictation.cleanupModel \"\" is not a non-empty string; using default gpt-6-luna" },
@@ -319,7 +343,7 @@ public class ConfigTests
     [Fact]
     public void An_openAi_value_that_is_not_an_object_is_reported_once_for_the_whole_field()
     {
-        var json = """{ "hotkey": "Ctrl+Win+Z", "armedTimeoutSeconds": 30, "sounds": { "ready": null, "corner": null, "sent": null, "done": null }, "openAi": "sk-test", "dictation": { "hotkey": "Ctrl+Win+X", "listeningTimeoutSeconds": 120, "insert": false, "model": "gpt-transcribe", "language": null, "prompt": null, "cleanup": false, "cleanupModel": "gpt-6-luna" } }""";
+        var json = """{ "hotkey": "Ctrl+Win+Z", "armedTimeoutSeconds": 30, "sounds": { "ready": null, "corner": null, "sent": null, "done": null }, "openAi": "sk-test", "dictation": { "hotkey": "Ctrl+Win+X", "listeningTimeoutSeconds": 120, "insert": false, "model": "gpt-transcribe", "languages": ["en", "ru"], "prompt": null, "cleanup": false, "cleanupModel": "gpt-6-luna" } }""";
 
         var (config, problems) = Config.Load(json);
 
@@ -379,7 +403,7 @@ public class ConfigTests
     [Fact]
     public void A_sounds_value_that_is_not_an_object_is_reported_once_for_the_whole_field()
     {
-        var json = """{ "hotkey": "Ctrl+Win+Z", "armedTimeoutSeconds": 30, "sounds": "none", "openAi": { "apiKey": null }, "dictation": { "hotkey": "Ctrl+Win+X", "listeningTimeoutSeconds": 120, "insert": false, "model": "gpt-transcribe", "language": null, "prompt": null, "cleanup": false, "cleanupModel": "gpt-6-luna" } }""";
+        var json = """{ "hotkey": "Ctrl+Win+Z", "armedTimeoutSeconds": 30, "sounds": "none", "openAi": { "apiKey": null }, "dictation": { "hotkey": "Ctrl+Win+X", "listeningTimeoutSeconds": 120, "insert": false, "model": "gpt-transcribe", "languages": ["en", "ru"], "prompt": null, "cleanup": false, "cleanupModel": "gpt-6-luna" } }""";
 
         var (config, problems) = Config.Load(json);
 
@@ -460,7 +484,7 @@ public class ConfigTests
         Assert.Equal(120, config.ListeningTimeoutSeconds);
         Assert.False(config.Insert);
         Assert.Equal("gpt-transcribe", config.TranscriptionModel);
-        Assert.Null(config.Language);
+        Assert.Equal(new LanguageList("en", "ru"), config.Languages);
         Assert.Null(config.Prompt);
         Assert.False(config.Cleanup);
         Assert.Equal("gpt-6-luna", config.CleanupModel);

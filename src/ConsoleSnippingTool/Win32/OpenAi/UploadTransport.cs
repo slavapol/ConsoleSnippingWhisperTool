@@ -9,7 +9,7 @@ internal sealed class UploadTransport : ITranscriptionTransport
     public async Task<string> TranscribeAsync(AudioClip clip, TranscriptionRequest request, CancellationToken cancellationToken)
     {
         var wav = Wav.FromPcm16(clip.Pcm16, clip.SampleRate);
-        var form = OpenAiJson.TranscriptionForm(wav, request.Model, request.Language, request.Prompt);
+        var form = OpenAiJson.TranscriptionForm(wav, request.Model, request.Languages, request.Prompt);
         var body = await OpenAiHttp
             .SendAsync(HttpMethod.Post, "v1/audio/transcriptions", request.ApiKey, form, cancellationToken)
             .ConfigureAwait(false);

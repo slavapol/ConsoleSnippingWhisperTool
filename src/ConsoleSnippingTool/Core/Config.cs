@@ -1,5 +1,6 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ConsoleSnippingTool.Core;
 
@@ -50,7 +51,8 @@ public sealed record Config
 
     public string TranscriptionModel { get; init; } = "gpt-transcribe";
 
-    public string? Language { get; init; }
+    /// The languages the user expects to speak, sent to the Service as a hint; empty means none is sent.
+    public LanguageList Languages { get; init; } = LanguageList.Default;
 
     public string? Prompt { get; init; }
 
@@ -66,6 +68,7 @@ public sealed record Config
     {
         WriteIndented = true,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        Converters = { new OneLineLanguageListConverter() },
     };
 
     /// The config.json text for this config, in the shape the spec's Configuration section shows (camelCase, indented).
@@ -91,7 +94,7 @@ public sealed record Config
             listeningTimeoutSeconds = ListeningTimeoutSeconds,
             insert = Insert,
             model = TranscriptionModel,
-            language = Language,
+            languages = Languages,
             prompt = Prompt,
             cleanup = Cleanup,
             cleanupModel = CleanupModel,
@@ -169,7 +172,7 @@ public sealed record Config
             var listeningTimeoutSeconds = LoadTimeout(dictation, "dictation.listeningTimeoutSeconds", MinListeningTimeoutSeconds, MaxListeningTimeoutSeconds, defaults.ListeningTimeoutSeconds, problems);
             var insert = LoadBool(dictation, "dictation.insert", defaults.Insert, problems);
             var transcriptionModel = LoadString(dictation, "dictation.model", defaults.TranscriptionModel, problems);
-            var language = LoadOptionalString(dictation, "dictation.language", allowEmpty: false, problems);
+            var languages = LoadLanguages(dictation, "dictation.languages", defaults.Languages, problems);
             var prompt = LoadOptionalString(dictation, "dictation.prompt", allowEmpty: true, problems);
             var cleanup = LoadBool(dictation, "dictation.cleanup", defaults.Cleanup, problems);
             var cleanupModel = LoadString(dictation, "dictation.cleanupModel", defaults.CleanupModel, problems);
@@ -186,7 +189,7 @@ public sealed record Config
                 ListeningTimeoutSeconds = listeningTimeoutSeconds,
                 Insert = insert,
                 TranscriptionModel = transcriptionModel,
-                Language = language,
+                Languages = languages,
                 Prompt = prompt,
                 Cleanup = cleanup,
                 CleanupModel = cleanupModel,
@@ -328,6 +331,32 @@ public sealed record Config
         }
     }
 
+    /// null or [] (no hint is sent), or an array of non-empty strings kept as written: the codes are the Service's to
+    /// accept or reject at Dictation time. Anything else falls back to the default list, reported as its text (en, ru).
+    private static LanguageList LoadLanguages(JsonElement? parent, string path, LanguageList fallback, List<string> problems)
+    {
+        if (FieldOrMissing(parent, path, fallback.ToString(), problems) is not { } value)
+        {
+            return fallback;
+        }
+
+        if (value.ValueKind == JsonValueKind.Null)
+        {
+            return LanguageList.None;
+        }
+
+        if (value.ValueKind == JsonValueKind.Array && value.EnumerateArray().All(IsNonEmptyString))
+        {
+            return new LanguageList(value.EnumerateArray().Select(code => code.GetString()!));
+        }
+
+        problems.Add(Invalid(path, value, "is not null or an array of non-empty strings", fallback.ToString()));
+        return fallback;
+    }
+
+    private static bool IsNonEmptyString(JsonElement element) =>
+        element.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(element.GetString());
+
     private static bool LoadBool(JsonElement? parent, string path, bool fallback, List<string> problems)
     {
         var fallbackText = fallback ? "true" : "false";
@@ -353,4 +382,15 @@ public sealed record Config
 
     private static string Location(JsonException e) =>
         e.LineNumber is { } line ? $" (line {line + 1})" : "";
+
+    /// Writes the language list on one line, ["en", "ru"], as the spec's default file shows it; the indented writer
+    /// would otherwise put each code on a line of its own. Only ever writes: Load reads the file through JsonDocument.
+    private sealed class OneLineLanguageListConverter : JsonConverter<LanguageList>
+    {
+        public override LanguageList Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+            throw new NotSupportedException($"{FileName} is read through {nameof(Config)}.{nameof(Load)}");
+
+        public override void Write(Utf8JsonWriter writer, LanguageList value, JsonSerializerOptions options) =>
+            writer.WriteRawValue($"[{string.Join(", ", value.Select(code => JsonSerializer.Serialize(code, options)))}]");
+    }
 }
