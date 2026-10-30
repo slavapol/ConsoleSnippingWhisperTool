@@ -17,8 +17,10 @@ public interface IPlatform
     void UnregisterHotkey();
     void RegisterCancelKey();              // Esc, only while Armed (while Listening the keyboard hook takes Esc)
     void UnregisterCancelKey();
-    bool RegisterDictationHotkey(Hotkey hotkey); // false when another app owns it
+    bool RegisterDictationHotkey(Hotkey hotkey); // the Microphone Hotkey; false when another app owns it
     void UnregisterDictationHotkey();
+    bool RegisterPlaybackHotkey(Hotkey hotkey);  // posts OnPlaybackHotkey on each press, never on autorepeat; false when another app owns it
+    void UnregisterPlaybackHotkey();
 
     // Timer (renamed from StartArmedTimer/StopArmedTimer: one timer now serves Armed and Listening)
     void StartTimer(TimeSpan duration);   // restarts if already running

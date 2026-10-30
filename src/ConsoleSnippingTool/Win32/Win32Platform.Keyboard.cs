@@ -37,6 +37,18 @@ public sealed partial class Win32Platform
 
     public void UnregisterDictationHotkey() => NativeMethods.UnregisterHotKey(_window.Handle, MessageWindow.DictationHotkeyId);
 
+    // Playback Hotkey: registered the same way under its own id. Only the press matters, a second press being the
+    // Release, so no hook is involved; MOD_NOREPEAT keeps a slowly released chord to one press (spec: user story 10).
+
+    public bool RegisterPlaybackHotkey(Hotkey hotkey) =>
+        NativeMethods.RegisterHotKey(
+            _window.Handle,
+            MessageWindow.PlaybackHotkeyId,
+            (uint)hotkey.Modifiers | NativeMethods.MOD_NOREPEAT,
+            (uint)hotkey.VirtualKey);
+
+    public void UnregisterPlaybackHotkey() => NativeMethods.UnregisterHotKey(_window.Handle, MessageWindow.PlaybackHotkeyId);
+
     // Keyboard hook: WH_KEYBOARD_LL, installed by the core only while Listening, mirroring the mouse hook of ADR-0002.
     // It reports the chord's first key-up and swallows exactly one key: Esc.
     //

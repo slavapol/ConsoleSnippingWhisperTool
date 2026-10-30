@@ -12,6 +12,7 @@ namespace ConsoleSnippingTool.Tests;
 //   Config           ReadConfigText()  WriteConfigText(<json verbatim>)
 //   Hotkeys          RegisterHotkey(Ctrl+Win+Z)  UnregisterHotkey()  RegisterCancelKey()  UnregisterCancelKey()
 //                    RegisterDictationHotkey(Ctrl+Win+X)  UnregisterDictationHotkey()
+//                    RegisterPlaybackHotkey(Ctrl+Win+A)  UnregisterPlaybackHotkey()
 //   Timer            StartTimer(30s)  StopTimer()
 //   Capture          InstallMouseHook()  RemoveMouseHook()  TryCaptureToClipboard(5,10,6x11)
 //   Dictation        InstallKeyboardHook(Ctrl+Win+X)  RemoveKeyboardHook()  TryOpenSource(Microphone)  TryOpenSource(Playback)
@@ -48,6 +49,8 @@ public sealed class FakePlatform : IPlatform
     public bool RegisterHotkeyResult { get; set; } = true;
 
     public bool RegisterDictationHotkeyResult { get; set; } = true;
+
+    public bool RegisterPlaybackHotkeyResult { get; set; } = true;
 
     public bool CaptureResult { get; set; } = true;
 
@@ -148,6 +151,14 @@ public sealed class FakePlatform : IPlatform
     }
 
     public void UnregisterDictationHotkey() => Record("UnregisterDictationHotkey()");
+
+    public bool RegisterPlaybackHotkey(Hotkey hotkey)
+    {
+        Record($"RegisterPlaybackHotkey({hotkey.Text})");
+        return RegisterPlaybackHotkeyResult;
+    }
+
+    public void UnregisterPlaybackHotkey() => Record("UnregisterPlaybackHotkey()");
 
     // Timer
 

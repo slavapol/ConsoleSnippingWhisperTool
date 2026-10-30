@@ -28,6 +28,12 @@ public sealed partial class SnipperCore
         }
     }
 
+    /// The Playback Hotkey was pressed: the first press opens Listening on Playback, the second is its Release.
+    public void OnPlaybackHotkey()
+    {
+        // Does nothing yet: ticket 03 of Playback Dictation fills it with the spec's transitions.
+    }
+
     /// Opens the microphone and starts reading the user's speech; Ready is the one signal that it worked.
     private void StartListening()
     {

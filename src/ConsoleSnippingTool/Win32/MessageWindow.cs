@@ -12,6 +12,7 @@ internal sealed class MessageWindow : NativeWindow
     public const int CaptureHotkeyId = 1;
     public const int CancelKeyId = 2;
     public const int DictationHotkeyId = 3;
+    public const int PlaybackHotkeyId = 4;
     public const int WM_REPLACE_REQUESTED = NativeMethods.WM_APP + 1;
     public const int WM_LEFT_BUTTON_DOWN = NativeMethods.WM_APP + 2;  // wParam = x, lParam = y, virtual-screen pixels
     public const int WM_RIGHT_BUTTON_DOWN = NativeMethods.WM_APP + 3;
@@ -52,6 +53,9 @@ internal sealed class MessageWindow : NativeWindow
                 break;
             case NativeMethods.WM_HOTKEY when (int)m.WParam == DictationHotkeyId:
                 _core().OnDictationHotkey();
+                break;
+            case NativeMethods.WM_HOTKEY when (int)m.WParam == PlaybackHotkeyId:
+                _core().OnPlaybackHotkey();
                 break;
             case WM_REPLACE_REQUESTED:
                 _core().OnReplaceRequested();
