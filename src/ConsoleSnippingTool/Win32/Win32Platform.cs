@@ -17,8 +17,8 @@ namespace ConsoleSnippingTool.Win32;
 ///
 /// Split over several files by concern: this one (instance, config file, environment, what both jobs share: the
 /// one-shot timer and the clipboard write; exit), Capture (Capture Hotkey, mouse hook, screen to clipboard), Keyboard
-/// (Dictation Hotkey, keyboard hook), Microphone, Service (transport to the Service), Insert (paste with restore),
-/// Sounds, Console and Tray.
+/// (Dictation Hotkey, keyboard hook), Microphone, Service (transport to the Service), Copy (the Transcript as a plain
+/// clipboard write), Insert (paste with restore), Sounds, Console and Tray.
 public sealed partial class Win32Platform : IPlatform
 {
     private const string InstanceMutexName = @"Local\ConsoleSnippingTool.Instance";
@@ -199,7 +199,8 @@ public sealed partial class Win32Platform : IPlatform
         AttachedCore.OnTimerElapsed();
     }
 
-    // Clipboard (the Capture's image, the Insert's Transcript and its restored snapshot all go through this one write)
+    // Clipboard (the Capture's image, the Copy's Transcript, the Insert's Transcript and its restored snapshot all go
+    // through this one write)
 
     private const int ClipboardRetryTimes = 10;
     private const int ClipboardRetryDelayMilliseconds = 50;

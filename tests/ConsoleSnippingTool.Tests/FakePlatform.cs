@@ -16,8 +16,8 @@ namespace ConsoleSnippingTool.Tests;
 //   Capture          InstallMouseHook()  RemoveMouseHook()  TryCaptureToClipboard(5,10,6x11)
 //   Dictation        InstallKeyboardHook(Ctrl+Win+X)  RemoveKeyboardHook()  TryOpenMicrophone()  CloseMicrophone()  WarmUpService()
 //                    BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null)
-//                    BeginCleanup(seq:1,model:gpt-6-luna,transcript:<text verbatim>)  TryInsertText(<text verbatim>)
-//                    ReadEnvironmentVariable(OPENAI_API_KEY)
+//                    BeginCleanup(seq:1,model:gpt-6-luna,transcript:<text verbatim>)  TryCopyText(<text verbatim>)
+//                    TryInsertText(<text verbatim>)  ReadEnvironmentVariable(OPENAI_API_KEY)
 //   Sounds           TrySetSound(Ready,BuiltIn)  TrySetSound(Done,None)  TrySetSound(Ready,File(click.wav))  PlaySound(Done)
 //   Console          ShowConsole()  HideConsole()  WriteConsoleLine(<line verbatim>)
 //   Tray             SetTrayTooltip(ConsoleSnippingTool (Ctrl+Win+Z))  SetTrayMenuState(showEnabled:true,hideEnabled:false)
@@ -67,6 +67,9 @@ public sealed class FakePlatform : IPlatform
 
     /// Returned by CloseMicrophone: 3 s of silence at 16 kHz.
     public AudioClip MicrophoneClip { get; set; } = new(new byte[3 * 16000 * 2], 16000);
+
+    /// Returned by TryCopyText.
+    public bool CopyResult { get; set; } = true;
 
     /// Returned by TryInsertText.
     public bool InsertResult { get; set; } = true;
@@ -191,6 +194,12 @@ public sealed class FakePlatform : IPlatform
     {
         Record($"BeginCleanup(seq:{sequence},model:{request.Model},transcript:{transcript})");
         LastCleanupRequest = request;
+    }
+
+    public bool TryCopyText(string text)
+    {
+        Record($"TryCopyText({text})");
+        return CopyResult;
     }
 
     public bool TryInsertText(string text, out string reason)

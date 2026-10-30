@@ -37,7 +37,8 @@ public interface IPlatform
     void WarmUpService(string apiKey);        // fire-and-forget connection warm-up; result ignored
     void BeginTranscription(int sequence, AudioClip clip, TranscriptionRequest request); // later posts OnTranscript or OnTranscriptionFailed with the same sequence
     void BeginCleanup(int sequence, string transcript, CleanupRequest request);          // later posts OnCleanedTranscript or OnCleanupFailed
-    bool TryInsertText(string text, out string reason);   // paste with restore (ADR-0003); reason is set when false
+    bool TryCopyText(string text);                        // Copy: a plain Unicode-text clipboard write with the shared retry; false when the clipboard stayed locked
+    bool TryInsertText(string text, out string reason);   // Insert: paste with restore (ADR-0003); reason is set when false
     string? ReadEnvironmentVariable(string name);
 
     // Sounds

@@ -140,7 +140,7 @@ public sealed partial class SnipperCore
 
         if (!_config.Cleanup)
         {
-            Insert(text);
+            Deliver(text);
             return;
         }
 
@@ -148,7 +148,7 @@ public sealed partial class SnipperCore
         _platform.BeginCleanup(sequence, text, new CleanupRequest(ApiKey, _config.CleanupModel, CleanupInstructions));
     }
 
-    /// Silence or breathing: nothing to Insert, no Done (spec: user story 18).
+    /// Silence or breathing: nothing to deliver, no Done (spec: user story 18).
     private void NothingHeard()
     {
         _state = State.Idle;
@@ -166,7 +166,36 @@ public sealed partial class SnipperCore
     /// was sent; anything else is late and ignored (spec: Core states and transitions).
     private bool IsCurrent(int sequence) => _state == State.Transcribing && sequence == _dictationSequence;
 
-    /// Delivers the Transcript into the focused app; Done is the signal that it landed. Idle either way.
+    /// Hands the Transcript over the way config.json says: on the clipboard (Copy, the default) or into the focused
+    /// app (Insert). Done is the signal that it landed; Idle either way (spec: Delivery).
+    private void Deliver(string text)
+    {
+        if (_config.Insert)
+        {
+            Insert(text);
+        }
+        else
+        {
+            Copy(text);
+        }
+    }
+
+    /// Leaves the Transcript on the clipboard as any Ctrl+C would, for the user to paste where and when they choose
+    /// (spec: user stories 47 to 50).
+    private void Copy(string text)
+    {
+        _state = State.Idle;
+        if (_platform.TryCopyText(text))
+        {
+            _platform.PlaySound(Signal.Done);
+            Log($"Copied {Delivered(text)}");
+            return;
+        }
+
+        Report("Clipboard refused the Transcript; nothing was copied");
+    }
+
+    /// Pastes the Transcript into the app that has keyboard focus (ADR-0003; spec: user stories 3, 15 to 17, 33).
     private void Insert(string text)
     {
         _state = State.Idle;
@@ -180,8 +209,8 @@ public sealed partial class SnipperCore
         Report($"Transcript could not be inserted: {reason}; nothing was pasted");
     }
 
-    /// What the delivery log line says after its verb: the character count, the wait from the Release, the languages
-    /// the Service detected as " [en, ru]" (left out when it reported none) and the text (spec: user story 35).
+    /// What both delivery log lines say after their verb: the character count, the wait from the Release, the
+    /// languages the Service detected as " [en, ru]" (left out when it reported none) and the text (spec: user story 35).
     private string Delivered(string text) =>
         $"{text.Length} chars in {Seconds(_clock() - _sentAt)} s{DetectedLanguagesSuffix()}: {OneLine(text)}";
 
@@ -191,7 +220,7 @@ public sealed partial class SnipperCore
     /// The Transcript as one Console line: each newline shown as the two characters \n.
     private static string OneLine(string text) => text.Replace("\r\n", @"\n").Replace("\n", @"\n");
 
-    /// No network, a 4xx, the timeout: nothing is inserted and the user hears why; no retry (spec: user stories 30, 31).
+    /// No network, a 4xx, the timeout: nothing is delivered and the user hears why; no retry (spec: user stories 30, 31).
     public void OnTranscriptionFailed(int sequence, string reason)
     {
         if (!IsCurrent(sequence))
@@ -227,7 +256,7 @@ public sealed partial class SnipperCore
             return;
         }
 
-        Insert(text);
+        Deliver(text);
     }
 
     public void OnCleanupFailed(int sequence, string reason)
@@ -249,10 +278,11 @@ public sealed partial class SnipperCore
         Log("Dictation abandoned (exit)");
     }
 
-    /// Falls back to the raw Transcript with a Console line, so a Cleanup problem costs nothing (spec: user story 20).
+    /// Falls back to the raw Transcript with a Console line that names the delivery in effect, so a Cleanup problem
+    /// costs nothing (spec: user story 20).
     private void CleanupFailed(string reason)
     {
-        Log($"Cleanup failed: {reason}; inserting the raw transcript");
-        Insert(_rawTranscript ?? throw new InvalidOperationException("Cleanup result without a Transcript"));
+        Log($"Cleanup failed: {reason}; {(_config.Insert ? "inserting" : "copying")} the raw transcript");
+        Deliver(_rawTranscript ?? throw new InvalidOperationException("Cleanup result without a Transcript"));
     }
 }
