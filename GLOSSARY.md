@@ -49,16 +49,20 @@ The state between the Release and the Transcript arriving, during which the audi
 _Avoid_: Processing, uploading, waiting
 
 **Transcript**:
-The text the Service returned for one Dictation.
-_Avoid_: Transcription (the act), result, output
+The text the Service returned for one Dictation, in the language it was spoken. Never a translation.
+_Avoid_: Transcription (the act), translated text, result, output
 
 **Cleanup**:
 An optional second pass that rewrites a Transcript to drop fillers and false starts and keep only the speaker's final self-correction.
 _Avoid_: Smart formatting, polish, post-processing
 
 **Insert**:
-Delivering the Transcript into the app that has keyboard focus.
-_Avoid_: Paste (the mechanism, not the act), type, inject
+Delivering the Transcript into the app that has keyboard focus. One of the two ways a Dictation ends; the other is Copy.
+_Avoid_: Paste (the mechanism, not the act), type, inject, editor insert
+
+**Copy**:
+Leaving the Transcript on the clipboard for the user to paste wherever and whenever they choose. The default way a Dictation ends.
+_Avoid_: Clipboard mode, clipboard only
 
 **Discard**:
 Leaving Listening without a Transcript: by Esc, a Tap, or Exit.
@@ -82,7 +86,7 @@ The sound that confirms the Release was registered and the audio is on its way t
 _Avoid_: Stop sound, release sound
 
 **Done signal**:
-The sound that tells the user the job's result has landed: the Region on the clipboard, or the Transcript in the app.
+The sound that tells the user the job's result has landed: the Region or the Transcript on the clipboard, or the Transcript in the app.
 _Avoid_: Finish sound, success sound
 
 ### Shell
