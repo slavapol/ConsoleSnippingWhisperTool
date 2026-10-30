@@ -1,6 +1,6 @@
 # ConsoleSnippingTool
 
-A Windows tray tool with no on-screen UI that does two jobs from a hotkey: copies a user-chosen rectangle of the screen to the clipboard, and puts what the user says into the app they are typing in.
+A Windows tray tool with no on-screen UI that does two jobs from a hotkey: copies a user-chosen rectangle of the screen to the clipboard, and turns speech, the user's own or a meeting's, into text on the clipboard or in the app they are typing in.
 
 ## Language
 
@@ -29,19 +29,31 @@ _Avoid_: Abort, escape
 ### Dictating
 
 **Dictation**:
-One complete run of the tool's second job: Hotkey held, speech, text in the focused app.
-_Avoid_: Voice-to-text, voice mode, WispFlow mode, recording
+One complete run of the tool's second job: a Dictation Hotkey, speech from its Source, the Transcript on the clipboard or in the focused app.
+_Avoid_: Voice-to-text, voice mode, WispFlow mode, recording, dictation from speaker
+
+**Source**:
+Where a Dictation's audio comes from: the Microphone or Playback. Each Source has its own Dictation Hotkey.
+_Avoid_: Input, device, mode
+
+**Microphone**:
+The Source that hears the user, through their default communication microphone.
+_Avoid_: Mic, input device
+
+**Playback**:
+The Source that hears what the computer is playing on its default communication output device, such as the other people in a meeting. It never includes the user's own voice.
+_Avoid_: Speaker (in this glossary, the person talking), system audio, loopback, stereo mix
 
 **Listening**:
-The state between the Dictation Hotkey press and its Release, during which the microphone is open.
+The state between the Dictation Hotkey press and its Release, during which the Source is open.
 _Avoid_: Recording, dictation mode, active
 
 **Release**:
-The first key of the held Dictation Hotkey going up. It ends Listening; the Listening cap counts as a Release.
+The end of Listening that sends the audio. For the Microphone it is the first key of the held Microphone Hotkey going up; for Playback it is a second press of the Playback Hotkey. The Listening cap counts as a Release.
 _Avoid_: Key-up, stop
 
 **Tap**:
-A Dictation Hotkey held for less than half a second. It ends Listening with nothing sent.
+A Listening that ends less than half a second after it began: a Microphone Hotkey held that briefly, or the Playback Hotkey pressed twice that quickly. It ends Listening with nothing sent.
 _Avoid_: Short press, accidental press
 
 **Transcribing**:
@@ -49,7 +61,7 @@ The state between the Release and the Transcript arriving, during which the audi
 _Avoid_: Processing, uploading, waiting
 
 **Transcript**:
-The text the Service returned for one Dictation, in the language it was spoken. Never a translation.
+The text the Service returned for one Dictation, in the language it was spoken: one block of plain text, without names of who said what. Never a translation.
 _Avoid_: Transcription (the act), translated text, result, output
 
 **Cleanup**:
@@ -57,15 +69,15 @@ An optional second pass that rewrites a Transcript to drop fillers and false sta
 _Avoid_: Smart formatting, polish, post-processing
 
 **Insert**:
-Delivering the Transcript into the app that has keyboard focus. One of the two ways a Dictation ends; the other is Copy.
+Delivering the Transcript into the app that has keyboard focus. One of the two ways a Microphone Dictation ends; the other is Copy.
 _Avoid_: Paste (the mechanism, not the act), type, inject, editor insert
 
 **Copy**:
-Leaving the Transcript on the clipboard for the user to paste wherever and whenever they choose. The default way a Dictation ends.
+Leaving the Transcript on the clipboard for the user to paste wherever and whenever they choose. The default way a Microphone Dictation ends, and the only way a Playback Dictation ends.
 _Avoid_: Clipboard mode, clipboard only
 
 **Discard**:
-Leaving Listening without a Transcript: by Esc, a Tap, or Exit.
+Leaving Listening without a Transcript: by a Tap or Exit, and for the Microphone also by Esc.
 _Avoid_: Cancel (the Capture word), abort
 
 **Service**:
@@ -92,7 +104,7 @@ _Avoid_: Finish sound, success sound
 ### Shell
 
 **Hotkey**:
-A global key combination that starts a job: pressed, the Capture Hotkey arms the tool; held, the Dictation Hotkey opens Listening. Written as modifiers plus one key, for example `Ctrl+Win+Z`.
+A global key combination that starts a job. Pressed, the Capture Hotkey arms the tool. There are two Dictation Hotkeys, one per Source: held, the Microphone Hotkey opens Listening on the Microphone; pressed, the Playback Hotkey opens Listening on Playback, and pressed again it is the Release. Written as modifiers plus one key, for example `Ctrl+Win+Z`.
 _Avoid_: Shortcut, keybinding, accelerator
 
 **Console**:

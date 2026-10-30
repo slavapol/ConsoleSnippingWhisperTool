@@ -6,4 +6,4 @@ The requirement is minimum delay, and OpenAI's Realtime API can transcribe while
 
 - The wait after Release is expected around a second and is unmeasured; OpenAI publishes no latency numbers for either path. It is logged per Dictation so the choice can be revisited on data.
 - The transport sits behind one interface in the adapter so a streaming implementation can be added as a config option without touching the core. A Realtime session needs 24 kHz PCM where the upload uses 16 kHz; the microphone capture lets the audio engine resample, so the rate is a parameter.
-- Audio stays in memory. The endpoint's 25 MB ceiling is about 13 minutes of 16 kHz mono, far above the 120-second Listening cap.
+- Audio stays in memory. The endpoint's 25 MB ceiling is about 13 minutes of 16 kHz mono, above the 600-second maximum of either Listening cap; the Playback cap defaults to that maximum, about 19 MB.
