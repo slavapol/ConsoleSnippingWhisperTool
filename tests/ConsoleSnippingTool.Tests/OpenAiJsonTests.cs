@@ -24,6 +24,14 @@ public class OpenAiJsonTests
     }
 
     [Fact]
+    public void A_transcription_response_that_is_not_JSON_is_malformed_and_the_message_is_the_failure_reason()
+    {
+        var malformed = Assert.Throws<FormatException>(() => OpenAiJson.ParseTranscript("<html><body>Bad Gateway</body></html>"));
+
+        Assert.Equal("response is not JSON", malformed.Message);
+    }
+
+    [Fact]
     public void An_HTTP_error_reason_is_the_status_code_and_the_first_line_of_the_error_message()
     {
         // The shape OpenAI returns with a 4xx or 5xx status; the message is cut at its first line.
@@ -79,6 +87,22 @@ public class OpenAiJsonTests
             """;
 
         Assert.Equal("", OpenAiJson.ParseCleanupOutput(response));
+    }
+
+    [Fact]
+    public void A_Responses_object_without_output_is_malformed_and_the_message_is_the_failure_reason()
+    {
+        var malformed = Assert.Throws<FormatException>(() => OpenAiJson.ParseCleanupOutput("""{"id":"resp_3","object":"response","status":"queued"}"""));
+
+        Assert.Equal("response has no \"output\" field", malformed.Message);
+    }
+
+    [Fact]
+    public void A_Cleanup_response_that_is_not_JSON_is_malformed_and_the_message_is_the_failure_reason()
+    {
+        var malformed = Assert.Throws<FormatException>(() => OpenAiJson.ParseCleanupOutput("<html><body>Bad Gateway</body></html>"));
+
+        Assert.Equal("response is not JSON", malformed.Message);
     }
 
     [Fact]

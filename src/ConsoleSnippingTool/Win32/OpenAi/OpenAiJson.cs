@@ -49,10 +49,10 @@ public static class OpenAiJson
     }
 
     /// The Transcript in a transcription response: its "text" field. Throws FormatException, whose message is the
-    /// failure reason, when the field is not there.
+    /// failure reason, when the body is not JSON or the field is not there.
     public static string ParseTranscript(string json)
     {
-        using var document = JsonDocument.Parse(json);
+        using var document = ParseResponse(json);
         if (document.RootElement.ValueKind != JsonValueKind.Object
             || !document.RootElement.TryGetProperty("text", out var text)
             || text.ValueKind != JsonValueKind.String)
@@ -112,11 +112,20 @@ public static class OpenAiJson
     /// The cleaned Transcript in a Responses object: the "text" of every output[].content[] part whose "type" is
     /// "output_text", concatenated. Reasoning items have no content and a refusal part has no text, so an output
     /// with nothing but those yields "". (Some SDKs add a top-level "output_text" for this; the raw JSON has none.)
+    /// Throws FormatException, whose message is the failure reason, when the body is not JSON or the output array is
+    /// not there.
     public static string ParseCleanupOutput(string json)
     {
-        using var document = JsonDocument.Parse(json);
+        using var document = ParseResponse(json);
+        if (document.RootElement.ValueKind != JsonValueKind.Object
+            || !document.RootElement.TryGetProperty("output", out var output)
+            || output.ValueKind != JsonValueKind.Array)
+        {
+            throw new FormatException("response has no \"output\" field");
+        }
+
         var text = new System.Text.StringBuilder();
-        foreach (var item in document.RootElement.GetProperty("output").EnumerateArray())
+        foreach (var item in output.EnumerateArray())
         {
             if (!item.TryGetProperty("content", out var content) || content.ValueKind != JsonValueKind.Array)
             {
@@ -134,6 +143,21 @@ public static class OpenAiJson
         }
 
         return text.ToString();
+    }
+
+    /// A success response body as a JSON document. A body that is not JSON (a gateway page behind a 200, say) is a
+    /// FormatException whose message is the failure reason, as a missing field is; JsonException's own message would
+    /// name a byte offset instead.
+    private static JsonDocument ParseResponse(string json)
+    {
+        try
+        {
+            return JsonDocument.Parse(json);
+        }
+        catch (JsonException)
+        {
+            throw new FormatException("response is not JSON");
+        }
     }
 
     private static string FirstLine(string text)
