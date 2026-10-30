@@ -81,7 +81,7 @@ public sealed partial class SnipperCore
         _dictationSequence++;
         _sentAt = _clock();
         _platform.PlaySound(Signal.Sent);
-        _platform.BeginTranscription(_dictationSequence, clip, TranscriptionRequest());
+        _platform.BeginTranscription(_dictationSequence, clip, BuildTranscriptionRequest());
         _state = State.Transcribing;
         Log($"Sent {Seconds(clip.Duration)} s of audio{(byCap ? " (cap)" : "")}");
     }
@@ -101,7 +101,7 @@ public sealed partial class SnipperCore
         });
     }
 
-    private TranscriptionRequest TranscriptionRequest() =>
+    private TranscriptionRequest BuildTranscriptionRequest() =>
         new(ApiKey, _config.TranscriptionModel, _config.Language, _config.Prompt);
 
     /// The key Listening was entered with; a Dictation never gets past the Hotkey without one, so it is never missing

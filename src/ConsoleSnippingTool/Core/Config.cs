@@ -192,7 +192,7 @@ public sealed record Config
     // the field takes its default silently) and the field's dotted path for the message ("dictation.model").
 
     /// The field, or null when the parent is absent or the field is missing (reported here with the fallback text).
-    private static JsonElement? Field(JsonElement? parent, string path, string fallback, List<string> problems)
+    private static JsonElement? FieldOrMissing(JsonElement? parent, string path, string fallback, List<string> problems)
     {
         if (parent is null)
         {
@@ -232,7 +232,7 @@ public sealed record Config
     /// The parsed Hotkey, or null when the field fell back (already reported) so the caller can tell a fallback apart.
     private static Hotkey? LoadHotkey(JsonElement? parent, string path, Hotkey fallback, List<string> problems)
     {
-        if (Field(parent, path, fallback.Text, problems) is not { } value)
+        if (FieldOrMissing(parent, path, fallback.Text, problems) is not { } value)
         {
             return null;
         }
@@ -248,7 +248,7 @@ public sealed record Config
 
     private static int LoadTimeout(JsonElement? parent, string path, int min, int max, int fallback, List<string> problems)
     {
-        if (Field(parent, path, fallback.ToString(), problems) is not { } value)
+        if (FieldOrMissing(parent, path, fallback.ToString(), problems) is not { } value)
         {
             return fallback;
         }
@@ -264,7 +264,7 @@ public sealed record Config
 
     private static SoundSource LoadSound(JsonElement? sounds, string path, SoundSource fallback, List<string> problems)
     {
-        if (Field(sounds, path, BuiltInClick, problems) is not { } value)
+        if (FieldOrMissing(sounds, path, BuiltInClick, problems) is not { } value)
         {
             return fallback;
         }
@@ -286,7 +286,7 @@ public sealed record Config
     /// A string that must have content: a model name.
     private static string LoadString(JsonElement? parent, string path, string fallback, List<string> problems)
     {
-        if (Field(parent, path, fallback, problems) is not { } value)
+        if (FieldOrMissing(parent, path, fallback, problems) is not { } value)
         {
             return fallback;
         }
@@ -304,7 +304,7 @@ public sealed record Config
     private static string? LoadOptionalString(JsonElement? parent, string path, bool allowEmpty, List<string> problems)
     {
         const string fallback = "null";
-        if (Field(parent, path, fallback, problems) is not { } value)
+        if (FieldOrMissing(parent, path, fallback, problems) is not { } value)
         {
             return null;
         }
@@ -324,7 +324,7 @@ public sealed record Config
     private static bool LoadBool(JsonElement? parent, string path, bool fallback, List<string> problems)
     {
         var fallbackText = fallback ? "true" : "false";
-        if (Field(parent, path, fallbackText, problems) is not { } value)
+        if (FieldOrMissing(parent, path, fallbackText, problems) is not { } value)
         {
             return fallback;
         }
