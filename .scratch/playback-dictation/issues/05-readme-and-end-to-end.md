@@ -1,6 +1,6 @@
 # 05 README and end-to-end
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 02, 03, 04
 
 Spec: `.scratch/playback-dictation/spec.md` → everything, README in particular. Prior art: `.scratch/dictation/issues/08-end-to-end-wiring.md`.
@@ -61,3 +61,5 @@ The exe does what the spec says, the README documents it, and the published buil
 **Spec reconciliation.** None needed. The built behaviour matches the spec as tickets 03 and 04 left it: the 1 s nothing-played threshold, `ceil(20 + seconds/6)`, every log line, call order and message. The deviations recorded in tickets 01 to 04 are internal (the capture's `DeviceName` property, `[PreserveSig]`, test knobs) or were already folded into the spec. `GLOSSARY.md` and the ADRs are unchanged.
 
 **Manual checklist.** Items 1 to 10 not run: they need a meeting and a live API key, so they are left for the user. For item 1, `ConsoleTests` pins the tooltip and header text, and (c) shows all three Hotkeys registered. Ticket 04's harness already confirmed `LOOPBACK | AUTOCONVERTPCM` at 16 kHz mono on this PC.
+
+- Resolved: branch tip 02bce2c fast-forwarded onto integration/playback-dictation; build 0 warnings, 256 tests green on integration. The manual checklist (items 1 to 10) is left for the user.
