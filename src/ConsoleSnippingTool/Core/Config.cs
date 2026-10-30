@@ -44,6 +44,10 @@ public sealed record Config
     private const int MinListeningTimeoutSeconds = 1;
     private const int MaxListeningTimeoutSeconds = 600;
 
+    /// How a Dictation ends: false leaves the Transcript on the clipboard (Copy, the default), true pastes it into the
+    /// focused app (Insert).
+    public bool Insert { get; init; }
+
     public string TranscriptionModel { get; init; } = "gpt-transcribe";
 
     public string? Language { get; init; }
@@ -85,6 +89,7 @@ public sealed record Config
         {
             hotkey = DictationHotkey.Text,
             listeningTimeoutSeconds = ListeningTimeoutSeconds,
+            insert = Insert,
             model = TranscriptionModel,
             language = Language,
             prompt = Prompt,
@@ -162,6 +167,7 @@ public sealed record Config
             }
 
             var listeningTimeoutSeconds = LoadTimeout(dictation, "dictation.listeningTimeoutSeconds", MinListeningTimeoutSeconds, MaxListeningTimeoutSeconds, defaults.ListeningTimeoutSeconds, problems);
+            var insert = LoadBool(dictation, "dictation.insert", defaults.Insert, problems);
             var transcriptionModel = LoadString(dictation, "dictation.model", defaults.TranscriptionModel, problems);
             var language = LoadOptionalString(dictation, "dictation.language", allowEmpty: false, problems);
             var prompt = LoadOptionalString(dictation, "dictation.prompt", allowEmpty: true, problems);
@@ -178,6 +184,7 @@ public sealed record Config
                 OpenAiApiKey = openAiApiKey,
                 DictationHotkey = dictationHotkey ?? defaults.DictationHotkey,
                 ListeningTimeoutSeconds = listeningTimeoutSeconds,
+                Insert = insert,
                 TranscriptionModel = transcriptionModel,
                 Language = language,
                 Prompt = prompt,

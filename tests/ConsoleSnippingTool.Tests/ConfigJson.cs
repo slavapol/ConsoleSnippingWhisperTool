@@ -16,6 +16,7 @@ internal static class ConfigJson
         string apiKey = "null",
         string dictationHotkey = "Ctrl+Win+X",
         string listeningTimeoutSeconds = "120",
+        string insert = "false",
         string model = "\"gpt-transcribe\"",
         string language = "null",
         string prompt = "null",
@@ -36,6 +37,7 @@ internal static class ConfigJson
           "dictation": {
             "hotkey": "{{dictationHotkey}}",
             "listeningTimeoutSeconds": {{listeningTimeoutSeconds}},
+            "insert": {{insert}},
             "model": {{model}},
             "language": {{language}},
             "prompt": {{prompt}},

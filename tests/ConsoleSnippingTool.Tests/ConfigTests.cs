@@ -212,6 +212,7 @@ public class ConfigTests
             "config.json: openAi.apiKey is missing; using default null",
             "config.json: dictation.hotkey is missing; using default Ctrl+Win+X",
             "config.json: dictation.listeningTimeoutSeconds is missing; using default 120",
+            "config.json: dictation.insert is missing; using default false",
             "config.json: dictation.model is missing; using default gpt-transcribe",
             "config.json: dictation.language is missing; using default null",
             "config.json: dictation.prompt is missing; using default null",
@@ -229,6 +230,7 @@ public class ConfigTests
             apiKey: "\"sk-test\"",
             dictationHotkey: "ctrl + alt + d",
             listeningTimeoutSeconds: "45",
+            insert: "true",
             model: "\"gpt-transcribe-2\"",
             language: "\"en\"",
             prompt: "\"ACME, Kubernetes\"",
@@ -243,6 +245,7 @@ public class ConfigTests
             OpenAiApiKey = "sk-test",
             DictationHotkey = new Hotkey(HotkeyModifiers.Control | HotkeyModifiers.Alt, 0x44, "Ctrl+Alt+D"),
             ListeningTimeoutSeconds = 45,
+            Insert = true,
             TranscriptionModel = "gpt-transcribe-2",
             Language = "en",
             Prompt = "ACME, Kubernetes",
@@ -250,6 +253,17 @@ public class ConfigTests
             CleanupModel = "gpt-7-mini",
         };
         Assert.Equal(expected, config);
+    }
+
+    [Theory]
+    [InlineData("true", true)]
+    [InlineData("false", false)]
+    public void Dictation_insert_true_or_false_is_honoured(string insert, bool expected)
+    {
+        var (config, problems) = Config.Load(ConfigJson.With(insert: insert));
+
+        Assert.Empty(problems);
+        Assert.Equal(expected, config.Insert);
     }
 
     [Theory]
@@ -273,6 +287,7 @@ public class ConfigTests
         { ConfigJson.With(listeningTimeoutSeconds: "0"), "config.json: dictation.listeningTimeoutSeconds 0 is not an integer from 1 to 600; using default 120" },
         { ConfigJson.With(listeningTimeoutSeconds: "601"), "config.json: dictation.listeningTimeoutSeconds 601 is not an integer from 1 to 600; using default 120" },
         { ConfigJson.With(listeningTimeoutSeconds: "\"long\""), "config.json: dictation.listeningTimeoutSeconds \"long\" is not an integer from 1 to 600; using default 120" },
+        { ConfigJson.With(insert: "\"yes\""), "config.json: dictation.insert \"yes\" is not true or false; using default false" },
         { ConfigJson.With(model: "\"\""), "config.json: dictation.model \"\" is not a non-empty string; using default gpt-transcribe" },
         { ConfigJson.With(model: "5"), "config.json: dictation.model 5 is not a non-empty string; using default gpt-transcribe" },
         { ConfigJson.With(language: "\" \""), "config.json: dictation.language \" \" is not null or a non-empty string; using default null" },
@@ -304,7 +319,7 @@ public class ConfigTests
     [Fact]
     public void An_openAi_value_that_is_not_an_object_is_reported_once_for_the_whole_field()
     {
-        var json = """{ "hotkey": "Ctrl+Win+Z", "armedTimeoutSeconds": 30, "sounds": { "ready": null, "corner": null, "sent": null, "done": null }, "openAi": "sk-test", "dictation": { "hotkey": "Ctrl+Win+X", "listeningTimeoutSeconds": 120, "model": "gpt-transcribe", "language": null, "prompt": null, "cleanup": false, "cleanupModel": "gpt-6-luna" } }""";
+        var json = """{ "hotkey": "Ctrl+Win+Z", "armedTimeoutSeconds": 30, "sounds": { "ready": null, "corner": null, "sent": null, "done": null }, "openAi": "sk-test", "dictation": { "hotkey": "Ctrl+Win+X", "listeningTimeoutSeconds": 120, "insert": false, "model": "gpt-transcribe", "language": null, "prompt": null, "cleanup": false, "cleanupModel": "gpt-6-luna" } }""";
 
         var (config, problems) = Config.Load(json);
 
@@ -364,7 +379,7 @@ public class ConfigTests
     [Fact]
     public void A_sounds_value_that_is_not_an_object_is_reported_once_for_the_whole_field()
     {
-        var json = """{ "hotkey": "Ctrl+Win+Z", "armedTimeoutSeconds": 30, "sounds": "none", "openAi": { "apiKey": null }, "dictation": { "hotkey": "Ctrl+Win+X", "listeningTimeoutSeconds": 120, "model": "gpt-transcribe", "language": null, "prompt": null, "cleanup": false, "cleanupModel": "gpt-6-luna" } }""";
+        var json = """{ "hotkey": "Ctrl+Win+Z", "armedTimeoutSeconds": 30, "sounds": "none", "openAi": { "apiKey": null }, "dictation": { "hotkey": "Ctrl+Win+X", "listeningTimeoutSeconds": 120, "insert": false, "model": "gpt-transcribe", "language": null, "prompt": null, "cleanup": false, "cleanupModel": "gpt-6-luna" } }""";
 
         var (config, problems) = Config.Load(json);
 
@@ -443,6 +458,7 @@ public class ConfigTests
 
         Assert.Equal("Ctrl+Win+X", config.DictationHotkey.Text);
         Assert.Equal(120, config.ListeningTimeoutSeconds);
+        Assert.False(config.Insert);
         Assert.Equal("gpt-transcribe", config.TranscriptionModel);
         Assert.Null(config.Language);
         Assert.Null(config.Prompt);
