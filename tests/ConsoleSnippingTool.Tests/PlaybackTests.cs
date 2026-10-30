@@ -71,6 +71,20 @@ public class PlaybackTests
     }
 
     [Fact]
+    public void The_Playback_cap_comes_from_config_apart_from_the_Microphone_cap()
+    {
+        var (fake, core) = Started(new FakePlatform
+        {
+            ConfigText = ConfigJson.With(listeningTimeoutSeconds: "45", playbackTimeoutSeconds: "300"),
+            Environment = ApiKey.InEnvironment,
+        });
+
+        core.OnPlaybackHotkey();
+
+        Assert.Contains("StartTimer(300s)", fake.Calls);
+    }
+
+    [Fact]
     public void Playback_that_does_not_open_is_reported_with_a_balloon_and_nothing_else_starts()
     {
         var (fake, core) = Started(new FakePlatform { Environment = ApiKey.InEnvironment, SourceOpens = false });
