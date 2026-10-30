@@ -244,10 +244,10 @@ public class PlaybackTests
     // Nothing played
 
     [Fact]
-    public void A_Release_with_499_ms_of_audio_sends_nothing_plays_no_Sent_and_logs_Nothing_heard_nothing_played_and_the_next_press_listens_again()
+    public void A_Release_with_999_ms_of_audio_sends_nothing_plays_no_Sent_and_logs_Nothing_heard_nothing_played_and_the_next_press_listens_again()
     {
         var (fake, core) = Listening();
-        fake.SourceClip = Audio(Ms(499));
+        fake.SourceClip = Audio(Ms(999));
         Advance(TimeSpan.FromSeconds(3));
 
         core.OnPlaybackHotkey();
@@ -266,24 +266,24 @@ public class PlaybackTests
     }
 
     [Fact]
-    public void A_Release_with_500_ms_of_audio_is_sent()
+    public void A_Release_with_1000_ms_of_audio_is_sent()
     {
         var (fake, core) = Listening();
-        fake.SourceClip = Audio(Ms(500));
+        fake.SourceClip = Audio(Ms(1000));
         Advance(TimeSpan.FromSeconds(3));
 
         core.OnPlaybackHotkey();
 
         Assert.Contains("PlaySound(Sent)", fake.Calls);
-        Assert.Contains("BeginTranscription(seq:1,clip:0.5s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:21s)", fake.Calls);
-        Assert.Equal("14:02:10 Sent 0.5 s of audio", Logged(fake, core)[^1]);
+        Assert.Contains("BeginTranscription(seq:1,clip:1s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:21s)", fake.Calls);
+        Assert.Equal("14:02:10 Sent 1.0 s of audio", Logged(fake, core)[^1]);
     }
 
     [Fact]
-    public void The_cap_with_under_500_ms_of_audio_is_Nothing_heard_too()
+    public void The_cap_with_under_a_second_of_audio_is_Nothing_heard_too()
     {
         var (fake, core) = Listening();
-        fake.SourceClip = Audio(Ms(30)); // the Ready click alone
+        fake.SourceClip = Audio(Ms(440)); // the Ready click and the 0.4 s of silence the sound player renders after it
         Advance(TimeSpan.FromSeconds(600));
 
         core.OnTimerElapsed();

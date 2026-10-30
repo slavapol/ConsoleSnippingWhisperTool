@@ -116,9 +116,10 @@ public sealed partial class SnipperCore
     private static readonly TimeSpan TapThreshold = TimeSpan.FromMilliseconds(500);
 
     /// A Playback clip with less audio than this is not sent. Loopback records nothing while no app plays, but the Ready
-    /// click lands in the clip whenever the default output is also the communication one, so the clip is never quite
-    /// empty (Playback Dictation spec: user story 17). The Microphone sends every Release that is not a Tap.
-    private static readonly TimeSpan MinimumPlayback = TimeSpan.FromMilliseconds(500);
+    /// click lands in the clip whenever the default output is also the communication one, followed by the 0.4 s of
+    /// silence the sound player keeps rendering after it, so a clip in which nothing else played is about 0.44 s long
+    /// (Playback Dictation spec: user story 17). The Microphone sends every Release that is not a Tap.
+    private static readonly TimeSpan MinimumPlayback = TimeSpan.FromSeconds(1);
 
     /// Ends Listening and sends what was heard; Sent is the signal that the audio is on its way. The cap counts as a
     /// Release (spec: user story 12) and is never a Tap, however short it is configured.
