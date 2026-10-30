@@ -125,7 +125,8 @@ public sealed partial class SnipperCore
 
     private void SetUpTray()
     {
-        _platform.SetTrayTooltip($"{ToolName} (capture {_config.Hotkey.Text}, dictate {_config.DictationHotkey.Text})");
+        // At most 117 characters with three of the longest Hotkeys (Ctrl+Alt+Shift+Win+F24), under the tray's 127.
+        _platform.SetTrayTooltip($"{ToolName} (capture {_config.Hotkey.Text}, dictate {_config.DictationHotkey.Text}, playback {_config.PlaybackHotkey.Text})");
         _platform.SetTrayMenuState(showEnabled: true, hideEnabled: false);
     }
 

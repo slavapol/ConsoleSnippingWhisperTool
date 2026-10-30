@@ -47,7 +47,7 @@ public class StartupTests
             "RegisterHotkey(Ctrl+Win+Z)",
             "RegisterDictationHotkey(Ctrl+Win+X)",
             "RegisterPlaybackHotkey(Ctrl+Win+A)",
-            "SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X))",
+            "SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X, playback Ctrl+Win+A))",
             "SetTrayMenuState(showEnabled:true,hideEnabled:false)",
         ];
         Assert.Equal(expected, fake.Calls);
@@ -103,7 +103,7 @@ public class StartupTests
 
         var register = fake.Calls.IndexOf("RegisterHotkey(Ctrl+Win+Z)");
         var balloon = fake.Calls.FindIndex(call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal));
-        var tooltip = fake.Calls.IndexOf("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X))");
+        var tooltip = fake.Calls.IndexOf("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X, playback Ctrl+Win+A))");
         Assert.True(register >= 0, "Hotkey registration was attempted");
         Assert.True(balloon > register, "a balloon follows the failed registration");
         Assert.Contains("Ctrl+Win+Z", fake.Calls[balloon]);
@@ -123,7 +123,7 @@ public class StartupTests
         Assert.Equal("ShowBalloon(ConsoleSnippingTool: Hotkey Ctrl+Win+X is already taken by another app; edit config.json and relaunch)", balloon);
         var capture = fake.Calls.IndexOf("RegisterHotkey(Ctrl+Win+Z)");
         var dictation = fake.Calls.IndexOf("RegisterDictationHotkey(Ctrl+Win+X)");
-        var tooltip = fake.Calls.IndexOf("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X))");
+        var tooltip = fake.Calls.IndexOf("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X, playback Ctrl+Win+A))");
         Assert.True(capture >= 0, "the Capture Hotkey was registered");
         Assert.True(dictation > capture, "the Dictation Hotkey is registered after the Capture one");
         Assert.Equal(dictation + 1, fake.Calls.IndexOf(balloon));

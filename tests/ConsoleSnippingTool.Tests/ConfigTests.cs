@@ -13,7 +13,7 @@ public class ConfigTests
         core.Start();
 
         Assert.Contains("RegisterHotkey(Ctrl+Shift+F5)", fake.Calls);
-        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Shift+F5, dictate Ctrl+Win+X))", fake.Calls);
+        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Shift+F5, dictate Ctrl+Win+X, playback Ctrl+Win+A))", fake.Calls);
         Assert.Empty(Balloons(fake));
     }
 
@@ -26,8 +26,35 @@ public class ConfigTests
         core.Start();
 
         Assert.Contains("RegisterDictationHotkey(Ctrl+Alt+D)", fake.Calls);
-        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Alt+D))", fake.Calls);
+        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Alt+D, playback Ctrl+Win+A))", fake.Calls);
         Assert.Empty(Balloons(fake));
+    }
+
+    [Fact]
+    public void A_configured_Playback_Hotkey_is_registered_and_shown_in_the_tray_tooltip()
+    {
+        var fake = new FakePlatform { ConfigText = ConfigJson.With(playbackHotkey: "ctrl+alt+m"), Environment = ApiKey.InEnvironment };
+        var core = new SnipperCore(fake);
+
+        core.Start();
+
+        Assert.Contains("RegisterPlaybackHotkey(Ctrl+Alt+M)", fake.Calls);
+        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X, playback Ctrl+Alt+M))", fake.Calls);
+        Assert.Empty(Balloons(fake));
+    }
+
+    [Fact]
+    public void The_tray_tooltip_with_three_of_the_longest_Hotkeys_fits_the_tray_s_127_characters()
+    {
+        var json = ConfigJson.With(hotkey: "Ctrl+Alt+Shift+Win+F22", dictationHotkey: "Ctrl+Alt+Shift+Win+F23", playbackHotkey: "Ctrl+Alt+Shift+Win+F24");
+        var fake = new FakePlatform { ConfigText = json, Environment = ApiKey.InEnvironment };
+        var core = new SnipperCore(fake);
+
+        core.Start();
+
+        var tooltip = Assert.Single(fake.Calls, call => call.StartsWith("SetTrayTooltip(", StringComparison.Ordinal))["SetTrayTooltip(".Length..^1];
+        Assert.Equal("ConsoleSnippingTool (capture Ctrl+Alt+Shift+Win+F22, dictate Ctrl+Alt+Shift+Win+F23, playback Ctrl+Alt+Shift+Win+F24)", tooltip);
+        Assert.True(tooltip.Length <= 127, $"the tooltip is {tooltip.Length} characters");
     }
 
     [Fact]
@@ -69,7 +96,7 @@ public class ConfigTests
         core.Start();
 
         Assert.Contains("RegisterHotkey(Ctrl+Win+Z)", fake.Calls);
-        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X))", fake.Calls);
+        Assert.Contains("SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X, playback Ctrl+Win+A))", fake.Calls);
         var balloon = Assert.Single(Balloons(fake));
         Assert.Equal($"ShowBalloon(ConsoleSnippingTool: config.json: hotkey \"{hotkey}\" is not a valid Hotkey; using default Ctrl+Win+Z)", balloon);
     }
@@ -127,7 +154,7 @@ public class ConfigTests
             "RegisterHotkey(Ctrl+Win+Z)",
             "RegisterDictationHotkey(Ctrl+Win+X)",
             "RegisterPlaybackHotkey(Ctrl+Win+A)",
-            "SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X))",
+            "SetTrayTooltip(ConsoleSnippingTool (capture Ctrl+Win+Z, dictate Ctrl+Win+X, playback Ctrl+Win+A))",
             "SetTrayMenuState(showEnabled:true,hideEnabled:false)",
         ];
         var balloon = Assert.Single(Balloons(fake));
