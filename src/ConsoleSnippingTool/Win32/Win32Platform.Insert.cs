@@ -14,8 +14,6 @@ public sealed partial class Win32Platform
     private const string CanUploadToCloudClipboard = "CanUploadToCloudClipboard";
     private static readonly byte[] DwordZero = new byte[4];
 
-    private const int ClipboardRetryTimes = 10;
-    private const int ClipboardRetryDelayMilliseconds = 50;
     private const int ModifierWaitMilliseconds = 2000;
     private const int ModifierPollMilliseconds = 20;
     private const int RestoreDelayMilliseconds = 300;
@@ -126,21 +124,6 @@ public sealed partial class Win32Platform
         data.SetData(CanIncludeInClipboardHistory, autoConvert: false, new MemoryStream(DwordZero, writable: false));
         data.SetData(CanUploadToCloudClipboard, autoConvert: false, new MemoryStream(DwordZero, writable: false));
         return data;
-    }
-
-    /// The same write as the Capture's: copied onto the clipboard so it outlives this process's object, retried for
-    /// about half a second while another app holds the clipboard.
-    private static bool TrySetClipboard(DataObject data)
-    {
-        try
-        {
-            Clipboard.SetDataObject(data, copy: true, ClipboardRetryTimes, ClipboardRetryDelayMilliseconds);
-            return true;
-        }
-        catch (ExternalException)
-        {
-            return false;
-        }
     }
 
     // Modifiers and the paste

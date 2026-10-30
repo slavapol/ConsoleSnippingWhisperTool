@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using ConsoleSnippingTool.Core;
 
 namespace ConsoleSnippingTool.Win32;
@@ -14,9 +15,10 @@ namespace ConsoleSnippingTool.Win32;
 ///     core.Start();
 ///     Application.Run();
 ///
-/// Split over several files by concern: this one (instance, config file, environment, exit), Capture (Capture Hotkey,
-/// mouse hook, the one-shot timer both jobs share, screen to clipboard), Keyboard (Dictation Hotkey, keyboard hook),
-/// Microphone, Service (transport to the Service), Insert (paste with restore), Sounds, Console and Tray.
+/// Split over several files by concern: this one (instance, config file, environment, the clipboard write both jobs
+/// share, exit), Capture (Capture Hotkey, mouse hook, the one-shot timer both jobs share, screen to clipboard),
+/// Keyboard (Dictation Hotkey, keyboard hook), Microphone, Service (transport to the Service), Insert (paste with
+/// restore), Sounds, Console and Tray.
 public sealed partial class Win32Platform : IPlatform
 {
     private const string InstanceMutexName = @"Local\ConsoleSnippingTool.Instance";
@@ -178,6 +180,26 @@ public sealed partial class Win32Platform : IPlatform
     // Environment
 
     public string? ReadEnvironmentVariable(string name) => Environment.GetEnvironmentVariable(name);
+
+    // Clipboard (the Capture's image, the Insert's Transcript and its restored snapshot all go through this one write)
+
+    private const int ClipboardRetryTimes = 10;
+    private const int ClipboardRetryDelayMilliseconds = 50;
+
+    /// Copied onto the clipboard so it outlives this process's object, retried for about half a second while another
+    /// app holds the clipboard; false when it still does.
+    private static bool TrySetClipboard(DataObject data)
+    {
+        try
+        {
+            Clipboard.SetDataObject(data, copy: true, ClipboardRetryTimes, ClipboardRetryDelayMilliseconds);
+            return true;
+        }
+        catch (ExternalException)
+        {
+            return false;
+        }
+    }
 
     // Process
 

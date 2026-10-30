@@ -1,5 +1,4 @@
 using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
 using ConsoleSnippingTool.Core;
 using Region = ConsoleSnippingTool.Core.Region;
 
@@ -156,14 +155,6 @@ public sealed partial class Win32Platform
         var data = new DataObject();
         data.SetData(DataFormats.Bitmap, true, bitmap);
         data.SetData("PNG", false, png);
-        try
-        {
-            Clipboard.SetDataObject(data, copy: true, retryTimes: 10, retryDelay: 50);
-            return true;
-        }
-        catch (ExternalException)
-        {
-            return false;
-        }
+        return TrySetClipboard(data);
     }
 }
