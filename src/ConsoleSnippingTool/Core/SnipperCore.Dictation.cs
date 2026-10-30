@@ -243,7 +243,7 @@ public sealed partial class SnipperCore
     /// app (Insert). Done is the signal that it landed; Idle either way (spec: Delivery).
     private void Deliver(string text)
     {
-        if (_config.Insert)
+        if (Inserting)
         {
             Insert(text);
         }
@@ -253,8 +253,13 @@ public sealed partial class SnipperCore
         }
     }
 
+    /// Only a Microphone Dictation is Inserted, and only with dictation.insert on. A Playback Transcript is always
+    /// Copied, so one that lands a minute after the Release never pastes into whatever has focus by then (Playback
+    /// Dictation spec: user story 18).
+    private bool Inserting => _source == DictationSource.Microphone && _config.Insert;
+
     /// The delivery in effect as a log line names it: "copying" by default, "inserting" with dictation.insert on.
-    private string DeliveryVerb => _config.Insert ? "inserting" : "copying";
+    private string DeliveryVerb => Inserting ? "inserting" : "copying";
 
     /// Leaves the Transcript on the clipboard as any Ctrl+C would, for the user to paste where and when they choose
     /// (spec: user stories 47 to 50).

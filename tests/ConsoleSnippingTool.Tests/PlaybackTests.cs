@@ -292,7 +292,46 @@ public class PlaybackTests
         Assert.Equal("14:12:07 Nothing heard (nothing played)", Logged(fake, core)[^1]);
     }
 
+    // Delivery: always Copy
+
+    [Fact]
+    public void With_insert_on_a_Playback_Transcript_is_still_copied_and_never_inserted()
+    {
+        var (fake, core) = TranscribingWith(ConfigJson.With(insert: "true"));
+        Advance(Ms(900));
+
+        core.OnTranscript(1, "we ship on Friday", []);
+
+        Assert.Equal(["TryCopyText(we ship on Friday)", "PlaySound(Done)"], fake.Calls);
+        Assert.Equal("14:02:10 Copied 17 chars in 0.9 s: we ship on Friday", Logged(fake, core)[^1]);
+    }
+
+    [Fact]
+    public void With_insert_on_a_failed_Cleanup_of_a_Playback_Transcript_copies_the_raw_Transcript_and_its_Console_line_says_copying()
+    {
+        var (fake, core) = TranscribingWith(ConfigJson.With(insert: "true", cleanup: "true"));
+        core.OnTranscript(1, "um so we ship on Friday", []);
+        fake.Calls.Clear();
+
+        core.OnCleanupFailed(1, "timed out after 21 s");
+
+        Assert.Equal(["TryCopyText(um so we ship on Friday)", "PlaySound(Done)"], fake.Calls);
+        Assert.Equal("14:02:10 Cleanup failed: timed out after 21 s; copying the raw transcript", Logged(fake, core)[^2]);
+    }
+
     // Helpers
+
+    /// A Transcribing Playback Dictation started on the given config.json, three seconds in, with everything so far
+    /// cleared away.
+    private (FakePlatform Fake, SnipperCore Core) TranscribingWith(string configJson)
+    {
+        var (fake, core) = Started(new FakePlatform { ConfigText = configJson, Environment = ApiKey.InEnvironment });
+        core.OnPlaybackHotkey();
+        Advance(TimeSpan.FromSeconds(3));
+        core.OnPlaybackHotkey();
+        fake.Calls.Clear();
+        return (fake, core);
+    }
 
     /// That much 16 kHz audio, to the millisecond, as CloseSource returns it.
     private static AudioClip Audio(TimeSpan length) => new(new byte[(int)length.TotalMilliseconds * 16 * 2], 16000);
