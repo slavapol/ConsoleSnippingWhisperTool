@@ -6,9 +6,8 @@ namespace ConsoleSnippingTool.Win32;
 
 public sealed partial class Win32Platform
 {
-    // Kept in fields so the delegate handed to SetWindowsHookEx is never collected.
+    // Kept in a field so the delegate handed to SetWindowsHookEx is never collected.
     private readonly NativeMethods.LowLevelMouseProc _mouseProc;
-    private readonly System.Windows.Forms.Timer _timer;
     private nint _mouseHook;
 
     // A button-down and its matching button-up are swallowed as a pair. The core removes the hook while handling the
@@ -116,23 +115,6 @@ public sealed partial class Win32Platform
         }
 
         return NativeMethods.CallNextHookEx(_mouseHook, nCode, wParam, ref lParam);
-    }
-
-    // Timer (one shot, on the message loop; the Armed timeout and the Listening cap share it)
-
-    public void StartTimer(TimeSpan duration)
-    {
-        _timer.Stop();
-        _timer.Interval = (int)duration.TotalMilliseconds;
-        _timer.Start();
-    }
-
-    public void StopTimer() => _timer.Stop();
-
-    private void OnTimerTick(object? sender, EventArgs e)
-    {
-        _timer.Stop();
-        AttachedCore.OnTimerElapsed();
     }
 
     // Screen to clipboard

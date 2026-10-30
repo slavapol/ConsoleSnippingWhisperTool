@@ -15,10 +15,10 @@ namespace ConsoleSnippingTool.Win32;
 ///     core.Start();
 ///     Application.Run();
 ///
-/// Split over several files by concern: this one (instance, config file, environment, the clipboard write both jobs
-/// share, exit), Capture (Capture Hotkey, mouse hook, the one-shot timer both jobs share, screen to clipboard),
-/// Keyboard (Dictation Hotkey, keyboard hook), Microphone, Service (transport to the Service), Insert (paste with
-/// restore), Sounds, Console and Tray.
+/// Split over several files by concern: this one (instance, config file, environment, what both jobs share: the
+/// one-shot timer and the clipboard write; exit), Capture (Capture Hotkey, mouse hook, screen to clipboard), Keyboard
+/// (Dictation Hotkey, keyboard hook), Microphone, Service (transport to the Service), Insert (paste with restore),
+/// Sounds, Console and Tray.
 public sealed partial class Win32Platform : IPlatform
 {
     private const string InstanceMutexName = @"Local\ConsoleSnippingTool.Instance";
@@ -30,6 +30,7 @@ public sealed partial class Win32Platform : IPlatform
     private static readonly string ExeFolder = AppContext.BaseDirectory;
 
     private readonly MessageWindow _window;
+    private readonly System.Windows.Forms.Timer _timer;
     private SnipperCore? _core;
     private Mutex? _instanceMutex;
     private bool _ownsInstanceMutex;
@@ -180,6 +181,23 @@ public sealed partial class Win32Platform : IPlatform
     // Environment
 
     public string? ReadEnvironmentVariable(string name) => Environment.GetEnvironmentVariable(name);
+
+    // Timer (one shot, on the message loop; the Armed timeout and the Listening cap share it)
+
+    public void StartTimer(TimeSpan duration)
+    {
+        _timer.Stop();
+        _timer.Interval = (int)duration.TotalMilliseconds;
+        _timer.Start();
+    }
+
+    public void StopTimer() => _timer.Stop();
+
+    private void OnTimerTick(object? sender, EventArgs e)
+    {
+        _timer.Stop();
+        AttachedCore.OnTimerElapsed();
+    }
 
     // Clipboard (the Capture's image, the Insert's Transcript and its restored snapshot all go through this one write)
 

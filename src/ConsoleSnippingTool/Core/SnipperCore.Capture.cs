@@ -35,22 +35,6 @@ public sealed partial class SnipperCore
         Log("Armed");
     }
 
-    /// Esc: the cancel key registered while Armed, or the key the keyboard hook swallows while Listening; any other call
-    /// is a stray one.
-    public void OnCancelKey()
-    {
-        switch (_state)
-        {
-            case State.Armed:
-            case State.FirstCorner:
-                Cancel(CancelReason.Escape);
-                break;
-            case State.Listening:
-                Discard(DiscardReason.Escape);
-                break;
-        }
-    }
-
     /// Returns true when the click was consumed (the adapter then swallows it and the matching up).
     public bool OnLeftButtonDown(int x, int y)
     {
@@ -78,21 +62,6 @@ public sealed partial class SnipperCore
 
         Cancel(CancelReason.RightClick);
         return true;
-    }
-
-    /// The one timer: the Armed timeout or the Listening cap, stopped on leaving either, so an Idle call is a late one.
-    public void OnTimerElapsed()
-    {
-        switch (_state)
-        {
-            case State.Armed:
-            case State.FirstCorner:
-                Cancel(CancelReason.Timeout);
-                break;
-            case State.Listening:
-                Release(byCap: true);
-                break;
-        }
     }
 
     private void TakeFirstCorner(int x, int y)

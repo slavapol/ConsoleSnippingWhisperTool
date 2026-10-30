@@ -3,7 +3,8 @@ using System.Globalization;
 namespace ConsoleSnippingTool.Core;
 
 /// The state machine behind the tool. It receives events from the Win32 adapter through its public On* methods and
-/// answers only by calling <see cref="IPlatform"/>. Split over several files so tickets edit disjoint parts:
+/// answers only by calling <see cref="IPlatform"/>. Split over several files so tickets edit disjoint parts: this
+/// one holds what both jobs share (the state, the log, and the Esc and timer events, which dispatch by state), then
 /// Startup (Start, replace, exit, unhandled errors), Capture (Hotkey, Corners, cancel), Dictation (Hotkey, Release,
 /// Transcript, Cleanup) and Console (Show, Hide).
 public sealed partial class SnipperCore
@@ -71,5 +72,38 @@ public sealed partial class SnipperCore
     {
         _platform.ShowBalloon(ToolName, message);
         Log(message);
+    }
+
+    // The two events both jobs receive, each dispatched by state to the job's own private method.
+
+    /// Esc: the cancel key registered while Armed, or the key the keyboard hook swallows while Listening; any other call
+    /// is a stray one.
+    public void OnCancelKey()
+    {
+        switch (_state)
+        {
+            case State.Armed:
+            case State.FirstCorner:
+                Cancel(CancelReason.Escape);
+                break;
+            case State.Listening:
+                Discard(DiscardReason.Escape);
+                break;
+        }
+    }
+
+    /// The one timer: the Armed timeout or the Listening cap, stopped on leaving either, so an Idle call is a late one.
+    public void OnTimerElapsed()
+    {
+        switch (_state)
+        {
+            case State.Armed:
+            case State.FirstCorner:
+                Cancel(CancelReason.Timeout);
+                break;
+            case State.Listening:
+                Release(byCap: true);
+                break;
+        }
     }
 }
