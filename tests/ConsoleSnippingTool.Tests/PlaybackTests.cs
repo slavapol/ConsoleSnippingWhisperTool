@@ -197,6 +197,24 @@ public class PlaybackTests
         Assert.Equal(["14:02:07 Listening (playback: Test Device)", "14:02:10 Sent 3.0 s of audio"], Logged(fake, core));
     }
 
+    // One job at a time
+
+    [Theory]
+    [InlineData("Armed", "Playback hotkey ignored while armed")]
+    [InlineData("FirstCorner", "Playback hotkey ignored while armed")]
+    [InlineData("MicrophoneListening", "Playback hotkey ignored while listening")]
+    [InlineData("MicrophoneTranscribing", "Playback hotkey ignored while transcribing")]
+    [InlineData("PlaybackTranscribing", "Playback hotkey ignored while transcribing")]
+    public void The_Playback_Hotkey_during_a_Capture_a_Microphone_Dictation_or_a_Transcription_is_one_log_line_and_no_call(string state, string line)
+    {
+        var (fake, core) = In(state);
+
+        core.OnPlaybackHotkey();
+
+        Assert.Empty(fake.Calls);
+        Assert.Equal($"14:02:10 {line}", Logged(fake, core)[^1]);
+    }
+
     // Nothing played
 
     [Fact]
@@ -268,6 +286,49 @@ public class PlaybackTests
         fake ??= new FakePlatform { Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake, () => _now);
         core.Start();
+        fake.Calls.Clear();
+        return (fake, core);
+    }
+
+    /// A started Instance in the named state with the clock three seconds past the start (so a Transcribing one was
+    /// Listening well past a Tap), with everything up to that cleared away.
+    private (FakePlatform Fake, SnipperCore Core) In(string state)
+    {
+        var (fake, core) = Started();
+        var threeSeconds = TimeSpan.FromSeconds(3);
+        switch (state)
+        {
+            case "Armed":
+                core.OnHotkey();
+                Advance(threeSeconds);
+                break;
+            case "FirstCorner":
+                core.OnHotkey();
+                core.OnLeftButtonDown(10, 10);
+                Advance(threeSeconds);
+                break;
+            case "MicrophoneListening":
+                core.OnDictationHotkey();
+                Advance(threeSeconds);
+                break;
+            case "MicrophoneTranscribing":
+                core.OnDictationHotkey();
+                Advance(threeSeconds);
+                core.OnDictationKeyUp();
+                break;
+            case "PlaybackListening":
+                core.OnPlaybackHotkey();
+                Advance(threeSeconds);
+                break;
+            case "PlaybackTranscribing":
+                core.OnPlaybackHotkey();
+                Advance(threeSeconds);
+                core.OnPlaybackHotkey();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(state), state, null);
+        }
+
         fake.Calls.Clear();
         return (fake, core);
     }

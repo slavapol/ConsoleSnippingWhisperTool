@@ -35,7 +35,9 @@ public sealed partial class SnipperCore
         }
     }
 
-    /// The Playback Hotkey was pressed: the first press opens Listening on Playback, the second is its Release.
+    /// The Playback Hotkey was pressed: the first press opens Listening on Playback, the second is its Release. During
+    /// a Capture, a Microphone Dictation or any Transcription the press is one log line (Playback Dictation spec: user
+    /// story 24).
     public void OnPlaybackHotkey()
     {
         switch (_state)
@@ -45,6 +47,16 @@ public sealed partial class SnipperCore
                 break;
             case State.Listening when _source == DictationSource.Playback:
                 Release(byCap: false);
+                break;
+            case State.Listening:
+                Log("Playback hotkey ignored while listening");
+                break;
+            case State.Transcribing:
+                Log("Playback hotkey ignored while transcribing");
+                break;
+            case State.Armed:
+            case State.FirstCorner:
+                Log("Playback hotkey ignored while armed");
                 break;
         }
     }
