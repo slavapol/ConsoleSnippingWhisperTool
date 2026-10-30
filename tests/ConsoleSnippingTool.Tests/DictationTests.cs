@@ -386,7 +386,7 @@ public class DictationTests
     // Failures
 
     [Fact]
-    public void A_failed_transcription_is_a_balloon_naming_the_reason_with_nothing_inserted_no_Done_and_the_next_Hotkey_listens_again()
+    public void A_failed_transcription_is_a_balloon_naming_the_reason_delivers_nothing_plays_no_Done_and_the_next_Hotkey_listens_again()
     {
         var (fake, core) = In("Transcribing");
 
@@ -466,7 +466,7 @@ public class DictationTests
     [Theory]
     [InlineData("EMPTY")]
     [InlineData(" EMPTY\n")]
-    public void A_Cleanup_that_answers_EMPTY_is_Nothing_heard_with_nothing_inserted(string answer)
+    public void A_Cleanup_that_answers_EMPTY_is_Nothing_heard_and_delivers_nothing(string answer)
     {
         var (fake, core) = CleanupOnTranscribing();
         core.OnTranscript(1, "um", []);
