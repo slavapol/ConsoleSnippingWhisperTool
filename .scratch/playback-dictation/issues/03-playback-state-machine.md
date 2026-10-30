@@ -1,6 +1,6 @@
 # 03 Playback state machine and request timeout
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 01
 
 Spec: `.scratch/playback-dictation/spec.md` → Core states and transitions, Requests and their timeout (the core's part); user stories 1 to 6, 10 to 24, 29 to 32, 39 and 41. Prior art: `SnipperCore.Dictation.cs` and `DictationTests.cs`.
@@ -21,7 +21,7 @@ Follow the spec's transition list literally. Decided here:
 - Playback always delivers by Copy and its delivery verb is `copying`, whatever `Config.Insert` says.
 - The ignore lines: `Playback hotkey ignored while armed`/`listening`/`transcribing`; the existing `Dictation hotkey ignored while ...` lines become `Microphone hotkey ignored while ...`; the Microphone Hotkey during Playback Listening logs `Microphone hotkey ignored while listening`, while during Microphone Listening it stays silent.
 - `OnDictationKeyUp()` and `OnCancelKey()` during Playback Listening do nothing.
-- Files: `SnipperCore.Dictation.cs`, `SnipperCore.cs`, `SnipperCore.Capture.cs` if a dispatch needs it, `DictationTests.cs` and a new `PlaybackTests.cs`. Do not touch `Config.cs`, `SnipperCore.Startup.cs`, `SnipperCore.Console.cs` or any Win32 file: tickets 02 and 05 own them.
+- Files: `SnipperCore.Dictation.cs`, `SnipperCore.cs`, `SnipperCore.Capture.cs` if a dispatch needs it, `DictationTests.cs` and a new `PlaybackTests.cs`. Do not touch `Config.cs`, `SnipperCore.Startup.cs`, `SnipperCore.Console.cs` or any Win32 file: tickets 02 and 04 own them.
 
 ## Tests
 
@@ -82,3 +82,5 @@ Built test-first at the spec's one seam: core events in, `FakePlatform` calls an
    - `The_cap_with_under_a_second_of_audio_is_Nothing_heard_too`.
 3. I merged integration before writing this comment instead of after, so the comment lands on the coordinator's updated ticket text without a conflict.
 4. `The_Playback_cap_is_never_a_Tap` fires the timer at 400 ms with the default 3 s clip, like the Microphone's version. Real loopback cannot record 3 s in 0.4 s, but the rule under test is about the timer, not the clip.
+
+- Resolved: branch tip 3fab203 fast-forwarded onto integration/playback-dictation; build 0 warnings, 256 tests green on integration.
