@@ -383,6 +383,22 @@ public class DictationTests
         Assert.Equal(["09:05:07 Listening", "09:05:10 Sent 3.0 s of audio", "09:05:10 Nothing heard", "09:05:10 Listening"], Logged(fake, core));
     }
 
+    [Fact]
+    public void After_a_Nothing_heard_the_next_delivery_is_logged_with_the_languages_of_its_own_Transcript_only()
+    {
+        // The Service may name a language even for a Transcript it heard nothing in; it must not leak into the next one.
+        var (fake, core) = In("Transcribing");
+        core.OnTranscript(1, "", ["ru"]);
+        core.OnDictationHotkey();
+        Advance(TimeSpan.FromSeconds(3));
+        core.OnDictationKeyUp();
+        Advance(Ms(900));
+
+        core.OnTranscript(2, "hello world", []);
+
+        Assert.Equal("09:05:13 Copied 11 chars in 0.9 s: hello world", Logged(fake, core)[^1]);
+    }
+
     // Failures
 
     [Fact]

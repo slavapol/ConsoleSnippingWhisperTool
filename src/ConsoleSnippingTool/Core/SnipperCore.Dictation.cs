@@ -148,9 +148,11 @@ public sealed partial class SnipperCore
         _platform.BeginCleanup(sequence, text, new CleanupRequest(ApiKey, _config.CleanupModel, CleanupInstructions));
     }
 
-    /// Silence or breathing: nothing to deliver, no Done (spec: user story 18).
+    /// Silence or breathing: nothing to deliver, no Done, and whatever languages the Service named are not kept for
+    /// the next Dictation (spec: user story 18).
     private void NothingHeard()
     {
+        _detectedLanguages = [];
         _state = State.Idle;
         Log("Nothing heard");
     }
@@ -180,6 +182,9 @@ public sealed partial class SnipperCore
         }
     }
 
+    /// The delivery in effect as a log line names it: "copying" by default, "inserting" with dictation.insert on.
+    private string DeliveryVerb => _config.Insert ? "inserting" : "copying";
+
     /// Leaves the Transcript on the clipboard as any Ctrl+C would, for the user to paste where and when they choose
     /// (spec: user stories 47 to 50).
     private void Copy(string text)
@@ -188,7 +193,7 @@ public sealed partial class SnipperCore
         if (_platform.TryCopyText(text))
         {
             _platform.PlaySound(Signal.Done);
-            Log($"Copied {Delivered(text)}");
+            Log($"Copied {ResultTail(text)}");
             return;
         }
 
@@ -202,16 +207,17 @@ public sealed partial class SnipperCore
         if (_platform.TryInsertText(text, out var reason))
         {
             _platform.PlaySound(Signal.Done);
-            Log($"Inserted {Delivered(text)}");
+            Log($"Inserted {ResultTail(text)}");
             return;
         }
 
         Report($"Transcript could not be inserted: {reason}; nothing was pasted");
     }
 
-    /// What both delivery log lines say after their verb: the character count, the wait from the Release, the
-    /// languages the Service detected as " [en, ru]" (left out when it reported none) and the text (spec: user story 35).
-    private string Delivered(string text) =>
+    /// The tail of both delivery log lines, after Copied or Inserted: the character count, the wait from the Release,
+    /// the languages the Service detected as " [en, ru]" (left out when it reported none) and the text (spec: user
+    /// story 35).
+    private string ResultTail(string text) =>
         $"{text.Length} chars in {Seconds(_clock() - _sentAt)} s{DetectedLanguagesSuffix()}: {OneLine(text)}";
 
     private string DetectedLanguagesSuffix() =>
@@ -282,7 +288,7 @@ public sealed partial class SnipperCore
     /// costs nothing (spec: user story 20).
     private void CleanupFailed(string reason)
     {
-        Log($"Cleanup failed: {reason}; {(_config.Insert ? "inserting" : "copying")} the raw transcript");
+        Log($"Cleanup failed: {reason}; {DeliveryVerb} the raw transcript");
         Deliver(_rawTranscript ?? throw new InvalidOperationException("Cleanup result without a Transcript"));
     }
 }
