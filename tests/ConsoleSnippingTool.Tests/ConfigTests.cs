@@ -229,7 +229,7 @@ public class ConfigTests
     }
 
     [Fact]
-    public void Empty_openAi_and_dictation_objects_report_each_field_missing_with_its_default_in_file_order()
+    public void Empty_openAi_and_dictation_objects_report_each_field_missing_with_its_default_in_file_order_except_the_two_Playback_fields()
     {
         var json = """{ "hotkey": "Ctrl+Win+Z", "armedTimeoutSeconds": 30, "sounds": { "ready": null, "corner": null, "sent": null, "done": null }, "openAi": {}, "dictation": {} }""";
 
@@ -240,8 +240,6 @@ public class ConfigTests
             "config.json: openAi.apiKey is missing; using default null",
             "config.json: dictation.hotkey is missing; using default Ctrl+Win+X",
             "config.json: dictation.listeningTimeoutSeconds is missing; using default 120",
-            "config.json: dictation.playbackHotkey is missing; using default Ctrl+Win+A",
-            "config.json: dictation.playbackTimeoutSeconds is missing; using default 600",
             "config.json: dictation.insert is missing; using default false",
             "config.json: dictation.model is missing; using default gpt-transcribe",
             "config.json: dictation.languages is missing; using default en, ru",
@@ -250,6 +248,35 @@ public class ConfigTests
             "config.json: dictation.cleanupModel is missing; using default gpt-6-luna",
         ];
         Assert.Equal(expected, problems);
+        Assert.Equal(new Config(), config);
+    }
+
+    [Fact]
+    public void A_Dictation_era_file_without_the_two_Playback_fields_loads_with_their_defaults_and_no_problems()
+    {
+        // The default file main (c98ea5a) wrote before Playback existed (Playback Dictation spec: user story 36).
+        var json = """
+            {
+              "hotkey": "Ctrl+Win+Z",
+              "armedTimeoutSeconds": 30,
+              "sounds": { "ready": null, "corner": null, "sent": null, "done": null },
+              "openAi": { "apiKey": null },
+              "dictation": {
+                "hotkey": "Ctrl+Win+X",
+                "listeningTimeoutSeconds": 120,
+                "insert": false,
+                "model": "gpt-transcribe",
+                "languages": ["en", "ru"],
+                "prompt": null,
+                "cleanup": false,
+                "cleanupModel": "gpt-6-luna"
+              }
+            }
+            """;
+
+        var (config, problems) = Config.Load(json);
+
+        Assert.Empty(problems);
         Assert.Equal(new Config(), config);
     }
 

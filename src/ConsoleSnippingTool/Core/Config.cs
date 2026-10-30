@@ -133,8 +133,9 @@ public sealed record Config
     private const string BuiltInClick = "built-in click";
 
     /// Reads config.json text with per-field fallback: every field that is missing, of the wrong type or invalid
-    /// takes its default and adds one problem message naming it, in file order. An object field (sounds, openAi,
-    /// dictation) that is missing or not an object is one problem for the whole object. Unparseable JSON yields all
+    /// takes its default and adds one problem message naming it, in file order. The two Playback fields are the
+    /// exception: missing, they take their defaults without a problem, so a file from before them loads quietly. An
+    /// object field (sounds, openAi, dictation) that is missing or not an object is one problem for the whole object. Unparseable JSON yields all
     /// defaults and one problem. Null text (no file) yields the defaults and no problems. Unknown keys are ignored.
     public static (Config Config, IReadOnlyList<string> Problems) Load(string? json)
     {
@@ -185,7 +186,9 @@ public sealed record Config
             }
 
             var listeningTimeoutSeconds = LoadTimeout(dictation, "dictation.listeningTimeoutSeconds", MinListeningTimeoutSeconds, MaxListeningTimeoutSeconds, defaults.ListeningTimeoutSeconds, problems);
-            var playbackHotkey = LoadHotkey(dictation, "dictation.playbackHotkey", defaults.PlaybackHotkey, problems);
+            // The two Playback fields came after Dictation, so a file written before them lacks them: missing, each takes
+            // its default silently, and the upgrade costs nothing (Playback Dictation spec: user story 36).
+            var playbackHotkey = LoadHotkey(dictation, "dictation.playbackHotkey", defaults.PlaybackHotkey, problems, optional: true);
             // Spec: the same rule for the Playback Hotkey, compared against the Capture Hotkey in effect and then the
             // Microphone Hotkey in effect, each after its own fallback. A missing or invalid playbackHotkey is not
             // compared, so a default that collides is left to fail its registration and be reported as taken.
@@ -201,7 +204,7 @@ public sealed record Config
                 playbackHotkey = null;
             }
 
-            var playbackTimeoutSeconds = LoadTimeout(dictation, "dictation.playbackTimeoutSeconds", MinPlaybackTimeoutSeconds, MaxPlaybackTimeoutSeconds, defaults.PlaybackTimeoutSeconds, problems);
+            var playbackTimeoutSeconds = LoadTimeout(dictation, "dictation.playbackTimeoutSeconds", MinPlaybackTimeoutSeconds, MaxPlaybackTimeoutSeconds, defaults.PlaybackTimeoutSeconds, problems, optional: true);
             var insert = LoadBool(dictation, "dictation.insert", defaults.Insert, problems);
             var transcriptionModel = LoadString(dictation, "dictation.model", defaults.TranscriptionModel, problems);
             var languages = LoadLanguages(dictation, "dictation.languages", defaults.Languages, problems);
@@ -235,8 +238,9 @@ public sealed record Config
     // Every loader takes the object the field sits in (null when that object already fell back and was reported, so
     // the field takes its default silently) and the field's dotted path for the message ("dictation.model").
 
-    /// The field, or null when the parent is absent or the field is missing (reported here with the fallback text).
-    private static JsonElement? FieldOrMissing(JsonElement? parent, string path, string fallback, List<string> problems)
+    /// The field, or null when the parent is absent or the field is missing (reported here with the fallback text,
+    /// unless the field is optional: one added after files were already written, whose absence is no problem).
+    private static JsonElement? FieldOrMissing(JsonElement? parent, string path, string fallback, List<string> problems, bool optional = false)
     {
         if (parent is null)
         {
@@ -249,7 +253,11 @@ public sealed record Config
             return value;
         }
 
-        problems.Add(Missing(path, fallback));
+        if (!optional)
+        {
+            problems.Add(Missing(path, fallback));
+        }
+
         return null;
     }
 
@@ -274,9 +282,9 @@ public sealed record Config
     }
 
     /// The parsed Hotkey, or null when the field fell back (already reported) so the caller can tell a fallback apart.
-    private static Hotkey? LoadHotkey(JsonElement? parent, string path, Hotkey fallback, List<string> problems)
+    private static Hotkey? LoadHotkey(JsonElement? parent, string path, Hotkey fallback, List<string> problems, bool optional = false)
     {
-        if (FieldOrMissing(parent, path, fallback.Text, problems) is not { } value)
+        if (FieldOrMissing(parent, path, fallback.Text, problems, optional) is not { } value)
         {
             return null;
         }
@@ -293,9 +301,9 @@ public sealed record Config
     /// Two Hotkeys Windows would treat as one: the same modifiers and key, whatever their Text says.
     private static bool SameKeys(Hotkey a, Hotkey b) => a.Modifiers == b.Modifiers && a.VirtualKey == b.VirtualKey;
 
-    private static int LoadTimeout(JsonElement? parent, string path, int min, int max, int fallback, List<string> problems)
+    private static int LoadTimeout(JsonElement? parent, string path, int min, int max, int fallback, List<string> problems, bool optional = false)
     {
-        if (FieldOrMissing(parent, path, fallback.ToString(), problems) is not { } value)
+        if (FieldOrMissing(parent, path, fallback.ToString(), problems, optional) is not { } value)
         {
             return fallback;
         }

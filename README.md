@@ -35,6 +35,7 @@ A Playback Dictation records the other people in the meeting and sends their voi
 - The file lives in the same folder as `ConsoleSnippingTool.exe`. If it is missing, the tool writes it with the defaults on first start, so the easiest way to begin is to run the tool once and edit the file it created.
 - The file is read once at startup. Edits apply on the next launch: edit, then start the exe again. Starting a second copy replaces the running one, so there is nothing to close first.
 - Every field falls back on its own. A missing, mistyped or out-of-range field takes its default, and each such field is reported once with a tray balloon and a line in the Console (tray menu, Show). The tool never refuses to start over configuration. If the whole file is not valid JSON, all defaults are used and one balloon says so.
+- `dictation.playbackHotkey` and `dictation.playbackTimeoutSeconds` are optional. They came with Playback Dictation, so a file written before them lacks them: a missing one takes its default without a balloon, and such a file loads quietly. A mistyped or out-of-range value, or a Playback hotkey that clashes, is still reported.
 - Comments (`//` and `/* */`) and trailing commas are tolerated, since the file is hand-edited. Unknown keys are ignored.
 - The tool never writes to the file after creating it, so a key you put in it stays exactly where you put it.
 
@@ -121,8 +122,8 @@ Without a key anywhere, the tool starts normally, Capture works, and each press 
 | --- | --- | --- | --- |
 | `dictation.hotkey` | string | `"Ctrl+Win+X"` | The Microphone hotkey, held while you speak. Releasing any key of the chord ends Listening. A press shorter than half a second does nothing. Esc while holding discards the audio. If it is the same chord as the Capture hotkey in effect, it is reset to the default and reported. |
 | `dictation.listeningTimeoutSeconds` | integer, 1 to 600 | `120` | The longest one Microphone Dictation can be. When the cap hits, the audio so far is transcribed and delivered as if you had released. |
-| `dictation.playbackHotkey` | string | `"Ctrl+Win+A"` | The Playback hotkey: press it once to start Listening on what the computer plays, and again to send. A second press within half a second does nothing. Esc is not used. If it is the same chord as the Capture or the Microphone hotkey in effect, it is reset to the default and reported. |
-| `dictation.playbackTimeoutSeconds` | integer, 1 to 600 | `600` | The longest one Playback Dictation can be. When the cap hits, the audio so far is transcribed and copied as if you had pressed again. Ten minutes of audio is about 19 MB, under OpenAI's 25 MB upload limit. |
+| `dictation.playbackHotkey` | string, optional | `"Ctrl+Win+A"` | The Playback hotkey: press it once to start Listening on what the computer plays, and again to send. A second press within half a second does nothing. Esc is not used. If it is the same chord as the Capture or the Microphone hotkey in effect, it is reset to the default and reported. |
+| `dictation.playbackTimeoutSeconds` | integer, 1 to 600, optional | `600` | The longest one Playback Dictation can be. When the cap hits, the audio so far is transcribed and copied as if you had pressed again. Ten minutes of audio is about 19 MB, under OpenAI's 25 MB upload limit. |
 | `dictation.insert` | `true` or `false` | `false` | Microphone only. `false` leaves the text on the clipboard as a normal copy: it replaces whatever was there, shows up in `Win+V` history, and you paste it where and when you like. `true` pastes it straight into the app that has keyboard focus at the moment you release, keeps it out of `Win+V`, and puts the previous clipboard contents back afterwards. A Playback Transcript is always copied, whatever this says. |
 | `dictation.model` | non-empty string | `"gpt-transcribe"` | The OpenAI transcription model. Change it when OpenAI retires the default. |
 | `dictation.languages` | array of strings, or `null` | `["en", "ru"]` | The languages you expect to speak or to hear in a meeting, as codes such as `"en"`, `"de"` or `"ru"`; a bilingual speaker lists both. `null` or `[]` lets the service detect freely. The codes are not checked at startup: an unknown one makes the service reject that Dictation, which is reported like any other failure. The Copied or Inserted Console line shows the languages the service actually detected. |
@@ -292,8 +293,6 @@ config.json: sounds is missing; using default built-in click
 config.json: openAi is missing; using defaults
 config.json: dictation.hotkey Ctrl+Win+Z is the same as the Capture Hotkey in effect; using default Ctrl+Win+X
 config.json: dictation.listeningTimeoutSeconds is missing; using default 120
-config.json: dictation.playbackHotkey is missing; using default Ctrl+Win+A
-config.json: dictation.playbackTimeoutSeconds is missing; using default 600
 config.json: dictation.insert is missing; using default false
 config.json: dictation.model is missing; using default gpt-transcribe
 config.json: dictation.languages is missing; using default en, ru
@@ -302,7 +301,7 @@ config.json: dictation.cleanup "yes" is not true or false; using default false
 config.json: dictation.cleanupModel is missing; using default gpt-6-luna
 ```
 
-Missing fields are reported too, so the quickest way to a quiet startup is to start from the default file and change only the values you care about.
+Missing fields are reported too, except the two optional Playback fields, so the quickest way to a quiet startup is to start from the default file and change only the values you care about.
 
 ## Where to look when something is off
 

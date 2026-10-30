@@ -132,7 +132,7 @@ A second Source for Dictation. Pressing `Ctrl+Win+A` opens Listening on Playback
 
 ### Configuration
 
-- Two new fields in `dictation`, with the existing per-field fallback and one balloon plus Console line per problem. The `dictation` section of the default file becomes:
+- Two new fields in `dictation`, both optional. A missing one takes its default silently, with no problem reported, so a file written before them loads quietly (user story 36). An invalid or out-of-range value, or a clash, takes the existing per-field fallback with one balloon plus Console line per problem. Every other field keeps its missing-field report. The `dictation` section of the default file becomes:
 
   ```json
   "dictation": {
@@ -150,7 +150,7 @@ A second Source for Dictation. Pressing `Ctrl+Win+A` opens Listening on Playback
   ```
 
 - `playbackHotkey`: a Hotkey string, default `Ctrl+Win+A`. `playbackTimeoutSeconds`: an integer from 1 to 600, default 600; ten minutes of 16 kHz mono is about 19 MB, under the endpoint's 25 MB limit.
-- `hotkey` and `listeningTimeoutSeconds` keep their names and now mean the Microphone Hotkey and the Microphone cap. `insert` applies to the Microphone only. `model`, `languages`, `prompt`, `cleanup` and `cleanupModel` apply to both Sources. No field is renamed, so existing files load unchanged.
+- `hotkey` and `listeningTimeoutSeconds` keep their names and now mean the Microphone Hotkey and the Microphone cap. `insert` applies to the Microphone only. `model`, `languages`, `prompt`, `cleanup` and `cleanupModel` apply to both Sources. No field is renamed and the two new ones are optional, so existing files load unchanged and without a balloon.
 
 ### Console and tray
 
@@ -188,7 +188,7 @@ A second Source for Dictation. Pressing `Ctrl+Win+A` opens Listening on Playback
   - the device failing to open; no API key; Exit while Listening on Playback;
   - the device name on both Listening lines, and the line without a name;
   - the timeout on both requests for a 3-second, a one-minute and a ten-minute clip, and the Cleanup request carrying the timeout of its Dictation;
-  - config loading of both new fields, their fallbacks and both clash rules, and the new default file;
+  - config loading of both new fields, their fallbacks and both clash rules, a Dictation-era file without them loading with no problems, and the new default file;
   - registration and a taken Playback Hotkey at startup; unregistration on Exit;
   - the header and tooltip text.
 - Existing tests whose expected text changes are updated, not deleted: the Listening line, the `Dictation hotkey ignored` lines, the microphone call names, the recorded request strings, the header, the tooltip and the default file.

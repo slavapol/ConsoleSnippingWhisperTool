@@ -156,8 +156,9 @@ public class StartupTests
     [Fact]
     public void A_Capture_Hotkey_set_to_Ctrl_Win_A_with_the_Playback_Hotkey_omitted_ends_as_a_taken_Playback_Hotkey()
     {
-        // A missing playbackHotkey takes its default without a clash check, so both Hotkeys are Ctrl+Win+A; Windows
-        // refuses the second registration of the same keys (ERROR_HOTKEY_ALREADY_REGISTERED), scripted here.
+        // A missing playbackHotkey takes its default silently and without a clash check, so both Hotkeys are
+        // Ctrl+Win+A; Windows refuses the second registration of the same keys (ERROR_HOTKEY_ALREADY_REGISTERED),
+        // scripted here, and that refusal is the one report.
         var json = """{ "hotkey": "Ctrl+Win+A", "armedTimeoutSeconds": 30, "sounds": { "ready": null, "corner": null, "sent": null, "done": null }, "openAi": { "apiKey": null }, "dictation": { "hotkey": "Ctrl+Win+X", "listeningTimeoutSeconds": 120, "playbackTimeoutSeconds": 600, "insert": false, "model": "gpt-transcribe", "languages": ["en", "ru"], "prompt": null, "cleanup": false, "cleanupModel": "gpt-6-luna" } }""";
         var fake = new FakePlatform { ConfigText = json, RegisterPlaybackHotkeyResult = false, Environment = ApiKey.InEnvironment };
         var core = new SnipperCore(fake);
@@ -166,7 +167,6 @@ public class StartupTests
 
         string[] expectedBalloons =
         [
-            "ShowBalloon(ConsoleSnippingTool: config.json: dictation.playbackHotkey is missing; using default Ctrl+Win+A)",
             "ShowBalloon(ConsoleSnippingTool: Hotkey Ctrl+Win+A is already taken by another app; edit config.json and relaunch)",
         ];
         Assert.Equal(expectedBalloons, fake.Calls.Where(call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal)));
