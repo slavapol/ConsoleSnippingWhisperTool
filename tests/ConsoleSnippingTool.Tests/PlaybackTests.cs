@@ -319,6 +319,53 @@ public class PlaybackTests
         Assert.Equal("14:02:10 Cleanup failed: timed out after 21 s; copying the raw transcript", Logged(fake, core)[^2]);
     }
 
+    // The requests
+
+    [Theory]
+    [InlineData(3, "21s")]
+    [InlineData(60, "30s")]
+    [InlineData(600, "120s")]
+    public void Both_requests_of_a_Playback_Dictation_wait_20_s_plus_10_s_per_minute_of_audio_rounded_up_to_a_whole_second(int seconds, string timeout)
+    {
+        var (fake, core) = Started(new FakePlatform
+        {
+            ConfigText = ConfigJson.With(cleanup: "true"),
+            Environment = ApiKey.InEnvironment,
+            SourceClip = Audio(TimeSpan.FromSeconds(seconds)),
+        });
+        core.OnPlaybackHotkey();
+        Advance(TimeSpan.FromSeconds(seconds));
+
+        core.OnPlaybackHotkey();
+        core.OnTranscript(1, "we ship on Friday", []);
+
+        Assert.Contains($"BeginTranscription(seq:1,clip:{seconds}s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:{timeout})", fake.Calls);
+        Assert.Contains($"BeginCleanup(seq:1,model:gpt-6-luna,timeout:{timeout},transcript:we ship on Friday)", fake.Calls);
+    }
+
+    // Exit
+
+    [Fact]
+    public void Exit_while_Listening_on_Playback_closes_the_device_before_releasing_the_Hotkeys_and_the_tray_icon_and_logs_the_discard()
+    {
+        var (fake, core) = In("PlaybackListening");
+
+        core.OnExit();
+
+        string[] expected =
+        [
+            "StopTimer()",
+            "CloseSource()",
+            "UnregisterHotkey()",
+            "UnregisterDictationHotkey()",
+            "UnregisterPlaybackHotkey()",
+            "RemoveTrayIcon()",
+            "Exit()",
+        ];
+        Assert.Equal(expected, fake.Calls);
+        Assert.Equal(["14:02:07 Listening (playback: Test Device)", "14:02:10 Discarded (exit)"], Logged(fake, core));
+    }
+
     // Helpers
 
     /// A Transcribing Playback Dictation started on the given config.json, three seconds in, with everything so far
