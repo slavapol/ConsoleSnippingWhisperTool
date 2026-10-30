@@ -40,7 +40,7 @@ public sealed partial class SnipperCore
         // The hold is timed from the press, before the microphone is opened: the user is already holding the chord
         // while the device opens, so a slow open must never turn a held chord into a Tap.
         _listeningSince = _clock();
-        if (!_platform.TryOpenMicrophone())
+        if (!_platform.TryOpenSource(DictationSource.Microphone, out var deviceName))
         {
             Report("No microphone found");
             return;
@@ -51,8 +51,13 @@ public sealed partial class SnipperCore
         _platform.WarmUpService(apiKey);
         _platform.PlaySound(Signal.Ready);
         _state = State.Listening;
-        Log("Listening");
+        Log(ListeningLine("microphone", deviceName));
     }
+
+    /// "Listening (microphone: Headset)", or "Listening (microphone)" when the adapter could not read the device's
+    /// name, so a Dictation that hears the wrong device is easy to spot (Playback Dictation spec: user story 27).
+    private static string ListeningLine(string source, string deviceName) =>
+        deviceName.Length == 0 ? $"Listening ({source})" : $"Listening ({source}: {deviceName})";
 
     /// Any key of the held chord went up: the Release.
     public void OnDictationKeyUp()
@@ -118,7 +123,7 @@ public sealed partial class SnipperCore
     {
         _platform.RemoveKeyboardHook();
         _platform.StopTimer();
-        var clip = _platform.CloseMicrophone();
+        var clip = _platform.CloseSource();
         _state = State.Idle;
         return clip;
     }

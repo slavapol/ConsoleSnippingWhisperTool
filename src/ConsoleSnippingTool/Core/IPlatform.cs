@@ -32,8 +32,8 @@ public interface IPlatform
     // Dictation
     void InstallKeyboardHook(Hotkey chord);   // posts OnDictationKeyUp once when any key of the chord goes up, and OnCancelKey for Esc; swallows only Esc
     void RemoveKeyboardHook();
-    bool TryOpenMicrophone();                 // default communication capture device; false when there is none
-    AudioClip CloseMicrophone();              // stops capturing and returns everything recorded since TryOpenMicrophone
+    bool TryOpenSource(DictationSource source, out string deviceName); // the Source's default communication endpoint; false when it cannot be opened; deviceName is its friendly name, empty when unknown
+    AudioClip CloseSource();                  // stops capturing and returns everything recorded since TryOpenSource
     void WarmUpService(string apiKey);        // fire-and-forget connection warm-up; result ignored
     void BeginTranscription(int sequence, AudioClip clip, TranscriptionRequest request); // later posts OnTranscript or OnTranscriptionFailed with the same sequence
     void BeginCleanup(int sequence, string transcript, CleanupRequest request);          // later posts OnCleanedTranscript or OnCleanupFailed

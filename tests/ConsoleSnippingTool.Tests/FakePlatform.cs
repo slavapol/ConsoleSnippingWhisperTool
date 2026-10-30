@@ -14,7 +14,8 @@ namespace ConsoleSnippingTool.Tests;
 //                    RegisterDictationHotkey(Ctrl+Win+X)  UnregisterDictationHotkey()
 //   Timer            StartTimer(30s)  StopTimer()
 //   Capture          InstallMouseHook()  RemoveMouseHook()  TryCaptureToClipboard(5,10,6x11)
-//   Dictation        InstallKeyboardHook(Ctrl+Win+X)  RemoveKeyboardHook()  TryOpenMicrophone()  CloseMicrophone()  WarmUpService()
+//   Dictation        InstallKeyboardHook(Ctrl+Win+X)  RemoveKeyboardHook()  TryOpenSource(Microphone)  TryOpenSource(Playback)
+//                    CloseSource()  WarmUpService()
 //                    BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:20s)
 //                    BeginCleanup(seq:1,model:gpt-6-luna,timeout:20s,transcript:<text verbatim>)  TryCopyText(<text verbatim>)
 //                    TryInsertText(<text verbatim>)  ReadEnvironmentVariable(OPENAI_API_KEY)
@@ -59,14 +60,17 @@ public sealed class FakePlatform : IPlatform
     /// The json of the last WriteConfigText call, for assertions that do not want to match the whole Calls entry.
     public string? WrittenConfigText { get; private set; }
 
-    /// Returned by TryOpenMicrophone.
-    public bool MicrophoneOpens { get; set; } = true;
+    /// Returned by TryOpenSource, whichever Source it is asked for.
+    public bool SourceOpens { get; set; } = true;
 
-    /// Runs inside TryOpenMicrophone before it answers; a test advances its clock here to stand for a slow device open.
-    public Action? OpeningMicrophone { get; set; }
+    /// Runs inside TryOpenSource before it answers; a test advances its clock here to stand for a slow device open.
+    public Action? OpeningSource { get; set; }
 
-    /// Returned by CloseMicrophone: 3 s of silence at 16 kHz.
-    public AudioClip MicrophoneClip { get; set; } = new(new byte[3 * 16000 * 2], 16000);
+    /// The device name TryOpenSource reports; empty stands for an endpoint whose name could not be read.
+    public string DeviceName { get; set; } = "Test Device";
+
+    /// Returned by CloseSource: 3 s of silence at 16 kHz.
+    public AudioClip SourceClip { get; set; } = new(new byte[3 * 16000 * 2], 16000);
 
     /// Returned by TryCopyText.
     public bool CopyResult { get; set; } = true;
@@ -169,17 +173,18 @@ public sealed class FakePlatform : IPlatform
 
     public void RemoveKeyboardHook() => Record("RemoveKeyboardHook()");
 
-    public bool TryOpenMicrophone()
+    public bool TryOpenSource(DictationSource source, out string deviceName)
     {
-        Record("TryOpenMicrophone()");
-        OpeningMicrophone?.Invoke();
-        return MicrophoneOpens;
+        Record($"TryOpenSource({source})");
+        OpeningSource?.Invoke();
+        deviceName = SourceOpens ? DeviceName : "";
+        return SourceOpens;
     }
 
-    public AudioClip CloseMicrophone()
+    public AudioClip CloseSource()
     {
-        Record("CloseMicrophone()");
-        return MicrophoneClip;
+        Record("CloseSource()");
+        return SourceClip;
     }
 
     public void WarmUpService(string apiKey) => Record("WarmUpService()");

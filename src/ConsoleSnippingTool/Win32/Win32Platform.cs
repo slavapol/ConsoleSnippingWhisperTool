@@ -17,8 +17,8 @@ namespace ConsoleSnippingTool.Win32;
 ///
 /// Split over several files by concern: this one (instance, config file, environment, what both jobs share: the
 /// one-shot timer and the clipboard write; exit), Capture (Capture Hotkey, mouse hook, screen to clipboard), Keyboard
-/// (Dictation Hotkey, keyboard hook), Microphone, Service (transport to the Service), Copy (the Transcript as a plain
-/// clipboard write), Insert (paste with restore), Sounds, Console and Tray.
+/// (Dictation Hotkeys, keyboard hook), Source (the Microphone or Playback capture), Service (transport to the Service),
+/// Copy (the Transcript as a plain clipboard write), Insert (paste with restore), Sounds, Console and Tray.
 public sealed partial class Win32Platform : IPlatform
 {
     private const string InstanceMutexName = @"Local\ConsoleSnippingTool.Instance";

@@ -29,14 +29,14 @@ public class DictationTests
 
         string[] expected =
         [
-            "TryOpenMicrophone()",
+            "TryOpenSource(Microphone)",
             "StartTimer(120s)",
             "InstallKeyboardHook(Ctrl+Win+X)",
             "WarmUpService()",
             "PlaySound(Ready)",
             "RemoveKeyboardHook()",
             "StopTimer()",
-            "CloseMicrophone()",
+            "CloseSource()",
             "PlaySound(Sent)",
             "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:20s)",
             "TryCopyText(hello world)",
@@ -45,7 +45,7 @@ public class DictationTests
         Assert.Equal(expected, fake.Calls);
         string[] expectedLog =
         [
-            "09:05:07 Listening",
+            "09:05:07 Listening (microphone: Test Device)",
             "09:05:10 Sent 3.0 s of audio",
             "09:05:10 Copied 11 chars in 0.9 s [en]: hello world",
         ];
@@ -63,14 +63,38 @@ public class DictationTests
 
         string[] expected =
         [
-            "TryOpenMicrophone()",
+            "TryOpenSource(Microphone)",
             "StartTimer(120s)",
             "InstallKeyboardHook(Ctrl+Win+X)",
             "WarmUpService()",
             "PlaySound(Ready)",
         ];
         Assert.Equal(expected, fake.Calls);
-        Assert.Equal(["09:05:07 Listening"], Logged(fake, core));
+        Assert.Equal(["09:05:07 Listening (microphone: Test Device)"], Logged(fake, core));
+    }
+
+    [Fact]
+    public void The_Listening_line_names_the_microphone_the_adapter_opened()
+    {
+        var (fake, core) = Started(new FakePlatform
+        {
+            Environment = ApiKey.InEnvironment,
+            DeviceName = "Headset Microphone (Jabra Evolve2 65)",
+        });
+
+        core.OnDictationHotkey();
+
+        Assert.Equal(["09:05:07 Listening (microphone: Headset Microphone (Jabra Evolve2 65))"], Logged(fake, core));
+    }
+
+    [Fact]
+    public void The_Listening_line_leaves_the_name_out_when_the_adapter_reports_none()
+    {
+        var (fake, core) = Started(new FakePlatform { Environment = ApiKey.InEnvironment, DeviceName = "" });
+
+        core.OnDictationHotkey();
+
+        Assert.Equal(["09:05:07 Listening (microphone)"], Logged(fake, core));
     }
 
     [Fact]
@@ -86,11 +110,11 @@ public class DictationTests
     [Fact]
     public void A_microphone_that_does_not_open_is_reported_with_a_balloon_and_nothing_else_starts()
     {
-        var (fake, core) = Started(new FakePlatform { Environment = ApiKey.InEnvironment, MicrophoneOpens = false });
+        var (fake, core) = Started(new FakePlatform { Environment = ApiKey.InEnvironment, SourceOpens = false });
 
         core.OnDictationHotkey();
 
-        string[] expected = ["TryOpenMicrophone()", "ShowBalloon(ConsoleSnippingTool: No microphone found)"];
+        string[] expected = ["TryOpenSource(Microphone)", "ShowBalloon(ConsoleSnippingTool: No microphone found)"];
         Assert.Equal(expected, fake.Calls);
         Assert.Equal(["09:05:07 No microphone found"], Logged(fake, core));
     }
@@ -124,12 +148,12 @@ public class DictationTests
         [
             "RemoveKeyboardHook()",
             "StopTimer()",
-            "CloseMicrophone()",
+            "CloseSource()",
             "PlaySound(Sent)",
             "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:20s)",
         ];
         Assert.Equal(expected, fake.Calls);
-        Assert.Equal(["09:05:07 Listening", "09:05:10 Sent 3.0 s of audio"], Logged(fake, core));
+        Assert.Equal(["09:05:07 Listening (microphone: Test Device)", "09:05:10 Sent 3.0 s of audio"], Logged(fake, core));
     }
 
     [Fact]
@@ -140,9 +164,9 @@ public class DictationTests
 
         core.OnDictationKeyUp();
 
-        string[] expected = ["RemoveKeyboardHook()", "StopTimer()", "CloseMicrophone()"];
+        string[] expected = ["RemoveKeyboardHook()", "StopTimer()", "CloseSource()"];
         Assert.Equal(expected, fake.Calls);
-        Assert.Equal(["09:05:07 Listening", "09:05:07 Tap ignored"], Logged(fake, core));
+        Assert.Equal(["09:05:07 Listening (microphone: Test Device)", "09:05:07 Tap ignored"], Logged(fake, core));
     }
 
     [Fact]
@@ -164,7 +188,7 @@ public class DictationTests
         var (fake, core) = Started(new FakePlatform
         {
             Environment = ApiKey.InEnvironment,
-            OpeningMicrophone = () => Advance(Ms(300)),
+            OpeningSource = () => Advance(Ms(300)),
         });
         core.OnDictationHotkey();
         fake.Calls.Clear();
@@ -176,7 +200,7 @@ public class DictationTests
         [
             "RemoveKeyboardHook()",
             "StopTimer()",
-            "CloseMicrophone()",
+            "CloseSource()",
             "PlaySound(Sent)",
             "BeginTranscription(seq:1,clip:3s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:20s)",
         ];
@@ -188,7 +212,7 @@ public class DictationTests
     public void The_Listening_cap_is_a_Release_whose_log_line_says_so()
     {
         var (fake, core) = Listening();
-        fake.MicrophoneClip = new AudioClip(new byte[120 * 16000 * 2], 16000);
+        fake.SourceClip = new AudioClip(new byte[120 * 16000 * 2], 16000);
         Advance(TimeSpan.FromSeconds(120));
 
         core.OnTimerElapsed();
@@ -197,12 +221,12 @@ public class DictationTests
         [
             "RemoveKeyboardHook()",
             "StopTimer()",
-            "CloseMicrophone()",
+            "CloseSource()",
             "PlaySound(Sent)",
             "BeginTranscription(seq:1,clip:120s,model:gpt-transcribe,languages:en|ru,prompt:null,timeout:20s)",
         ];
         Assert.Equal(expected, fake.Calls);
-        Assert.Equal(["09:05:07 Listening", "09:07:07 Sent 120.0 s of audio (cap)"], Logged(fake, core));
+        Assert.Equal(["09:05:07 Listening (microphone: Test Device)", "09:07:07 Sent 120.0 s of audio (cap)"], Logged(fake, core));
     }
 
     [Fact]
@@ -212,7 +236,7 @@ public class DictationTests
         {
             ConfigText = ConfigJson.With(listeningTimeoutSeconds: "1"),
             Environment = ApiKey.InEnvironment,
-            MicrophoneClip = new AudioClip(new byte[(int)(0.4 * 16000) * 2], 16000),
+            SourceClip = new AudioClip(new byte[(int)(0.4 * 16000) * 2], 16000),
         });
         core.OnDictationHotkey();
         fake.Calls.Clear();
@@ -234,12 +258,12 @@ public class DictationTests
 
         core.OnCancelKey();
 
-        string[] expected = ["RemoveKeyboardHook()", "StopTimer()", "CloseMicrophone()"];
+        string[] expected = ["RemoveKeyboardHook()", "StopTimer()", "CloseSource()"];
         Assert.Equal(expected, fake.Calls);
         fake.Calls.Clear();
         core.OnDictationHotkey();
         Assert.Contains("PlaySound(Ready)", fake.Calls);
-        Assert.Equal(["09:05:07 Listening", "09:05:10 Discarded (Esc)", "09:05:10 Listening"], Logged(fake, core));
+        Assert.Equal(["09:05:07 Listening (microphone: Test Device)", "09:05:10 Discarded (Esc)", "09:05:10 Listening (microphone: Test Device)"], Logged(fake, core));
     }
 
     // One job at a time
@@ -253,7 +277,7 @@ public class DictationTests
         core.OnDictationHotkey();
 
         Assert.Empty(fake.Calls);
-        Assert.Equal(["09:05:07 Listening"], Logged(fake, core));
+        Assert.Equal(["09:05:07 Listening (microphone: Test Device)"], Logged(fake, core));
     }
 
     [Theory]
@@ -291,7 +315,7 @@ public class DictationTests
         Assert.False(core.OnLeftButtonDown(10, 10));
         Assert.False(core.OnRightButtonDown());
         Assert.Empty(fake.Calls);
-        Assert.Equal(["09:05:07 Listening"], Logged(fake, core));
+        Assert.Equal(["09:05:07 Listening (microphone: Test Device)"], Logged(fake, core));
     }
 
     [Fact]
@@ -314,7 +338,7 @@ public class DictationTests
         core.OnDictationKeyUp();
 
         Assert.Empty(fake.Calls);
-        Assert.Equal(["09:05:07 Listening", "09:05:10 Sent 3.0 s of audio"], Logged(fake, core));
+        Assert.Equal(["09:05:07 Listening (microphone: Test Device)", "09:05:10 Sent 3.0 s of audio"], Logged(fake, core));
     }
 
     // Transcript and delivery: Copy by default, Insert with insert: true
@@ -380,7 +404,7 @@ public class DictationTests
         Assert.Empty(fake.Calls);
         core.OnDictationHotkey();
         Assert.Contains("PlaySound(Ready)", fake.Calls);
-        Assert.Equal(["09:05:07 Listening", "09:05:10 Sent 3.0 s of audio", "09:05:10 Nothing heard", "09:05:10 Listening"], Logged(fake, core));
+        Assert.Equal(["09:05:07 Listening (microphone: Test Device)", "09:05:10 Sent 3.0 s of audio", "09:05:10 Nothing heard", "09:05:10 Listening (microphone: Test Device)"], Logged(fake, core));
     }
 
     [Fact]
@@ -603,14 +627,14 @@ public class DictationTests
         [
             "RemoveKeyboardHook()",
             "StopTimer()",
-            "CloseMicrophone()",
+            "CloseSource()",
             "UnregisterHotkey()",
             "UnregisterDictationHotkey()",
             "RemoveTrayIcon()",
             "Exit()",
         ];
         Assert.Equal(expected, fake.Calls);
-        Assert.Equal(["09:05:07 Listening", "09:05:10 Discarded (exit)"], Logged(fake, core));
+        Assert.Equal(["09:05:07 Listening (microphone: Test Device)", "09:05:10 Discarded (exit)"], Logged(fake, core));
     }
 
     [Fact]
@@ -623,7 +647,7 @@ public class DictationTests
 
         string[] expected = ["UnregisterHotkey()", "UnregisterDictationHotkey()", "RemoveTrayIcon()", "Exit()"];
         Assert.Equal(expected, fake.Calls);
-        Assert.Equal(["09:05:07 Listening", "09:05:10 Sent 3.0 s of audio", "09:05:10 Dictation abandoned (exit)"], Logged(fake, core));
+        Assert.Equal(["09:05:07 Listening (microphone: Test Device)", "09:05:10 Sent 3.0 s of audio", "09:05:10 Dictation abandoned (exit)"], Logged(fake, core));
     }
 
     // The request
