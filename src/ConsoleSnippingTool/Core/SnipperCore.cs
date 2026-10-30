@@ -89,8 +89,9 @@ public sealed partial class SnipperCore
 
     // The two events both jobs receive, each dispatched by state to the job's own private method.
 
-    /// Esc: the cancel key registered while Armed, or the key the keyboard hook swallows while Listening; any other call
-    /// is a stray one.
+    /// Esc: the cancel key registered while Armed, or the key the keyboard hook swallows while Listening on the
+    /// Microphone; any other call is a stray one. Playback leaves Esc to the user's apps (Playback Dictation spec: user
+    /// story 15).
     public void OnCancelKey()
     {
         switch (_state)
@@ -99,7 +100,7 @@ public sealed partial class SnipperCore
             case State.FirstCorner:
                 Cancel(CancelReason.Escape);
                 break;
-            case State.Listening:
+            case State.Listening when _source == DictationSource.Microphone:
                 Discard(DiscardReason.Escape);
                 break;
         }

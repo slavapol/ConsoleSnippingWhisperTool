@@ -180,6 +180,23 @@ public class PlaybackTests
         Assert.Equal("14:02:07 Sent 3.0 s of audio (cap)", Logged(fake, core)[^1]);
     }
 
+    // Esc and key-ups belong to the Microphone
+
+    [Fact]
+    public void A_stale_key_up_or_Esc_while_Listening_on_Playback_touches_nothing_and_the_next_press_is_still_the_Release()
+    {
+        var (fake, core) = Listening();
+        Advance(TimeSpan.FromSeconds(3));
+
+        core.OnDictationKeyUp();
+        core.OnCancelKey();
+
+        Assert.Empty(fake.Calls);
+        core.OnPlaybackHotkey();
+        Assert.Contains("PlaySound(Sent)", fake.Calls);
+        Assert.Equal(["14:02:07 Listening (playback: Test Device)", "14:02:10 Sent 3.0 s of audio"], Logged(fake, core));
+    }
+
     // Nothing played
 
     [Fact]

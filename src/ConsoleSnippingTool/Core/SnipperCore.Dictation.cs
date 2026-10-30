@@ -87,10 +87,11 @@ public sealed partial class SnipperCore
     private static string ListeningLine(string source, string deviceName) =>
         deviceName.Length == 0 ? $"Listening ({source})" : $"Listening ({source}: {deviceName})";
 
-    /// Any key of the held chord went up: the Release.
+    /// Any key of the held chord went up: the Release. Playback installs no hook, so a key-up while Listening on it
+    /// can only be a stale message and is ignored.
     public void OnDictationKeyUp()
     {
-        if (_state == State.Listening)
+        if (_state == State.Listening && _source == DictationSource.Microphone)
         {
             Release(byCap: false);
         }
