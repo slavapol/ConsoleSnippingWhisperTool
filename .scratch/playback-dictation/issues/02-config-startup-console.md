@@ -1,6 +1,6 @@
 # 02 Config, startup and Console
 
-Status: ready-for-agent
+Status: resolved
 Blocked by: 01
 
 Spec: `.scratch/playback-dictation/spec.md` → Configuration, Playback Hotkey (the clash rule and startup), Console and tray; user stories 33 to 38 and 40. Prior art: `.scratch/dictation/issues/02-config-and-startup.md`, `ConfigTests.cs`, `StartupTests.cs`, `ConsoleTests.cs`.
@@ -64,3 +64,5 @@ Built test-first. Tests went from 203 to 222, none deleted; `dotnet build` has 0
 2. The builder always writes every field. So the tests with a missing field (`playbackHotkey` omitted, `dictation.hotkey` omitted) use handwritten one-line JSON, as the existing not-an-object tests do.
 3. I fixed `Config.cs` doc comments. `DictationHotkey` and `ListeningTimeoutSeconds` now say Microphone. `Insert` says it applies to the Microphone only and that Playback always Copies. The behaviour is ticket 03's.
 4. The Tray example in `FakePlatform.cs`'s header comment (`SetTrayTooltip(ConsoleSnippingTool (Ctrl+Win+Z))`) was already stale. I left it, because that file is not in this ticket's list.
+
+- Resolved: branch tip 8514fa2 fast-forwarded onto integration/playback-dictation; build 0 warnings, 222 tests green on integration. The stale tooltip example in the fake's header comment is left for ticket 05.
