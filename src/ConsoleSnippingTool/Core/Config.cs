@@ -45,6 +45,14 @@ public sealed record Config
     private const int MinListeningTimeoutSeconds = 1;
     private const int MaxListeningTimeoutSeconds = 600;
 
+    /// The Hotkey that opens Listening on Playback and, pressed again, is its Release. Not yet read from config.json
+    /// or written by ToJson (ticket 02 of Playback Dictation).
+    public Hotkey PlaybackHotkey { get; init; } = Hotkey.PlaybackDefault;
+
+    /// The Playback cap: Listening on Playback ends by itself after this many seconds and sends what it heard. Not
+    /// yet read from config.json or written by ToJson (ticket 02 of Playback Dictation).
+    public int PlaybackTimeoutSeconds { get; init; } = 600;
+
     /// How a Dictation ends: false leaves the Transcript on the clipboard (Copy, the default), true pastes it into the
     /// focused app (Insert).
     public bool Insert { get; init; }

@@ -499,6 +499,23 @@ public class ConfigTests
         Assert.Equal("Ctrl+Win+X", Hotkey.DictationDefault.Text);
     }
 
+    [Fact]
+    public void A_default_Config_holds_the_Playback_defaults_the_spec_names()
+    {
+        var config = new Config();
+
+        Assert.Equal("Ctrl+Win+A", config.PlaybackHotkey.Text);
+        Assert.Equal(600, config.PlaybackTimeoutSeconds);
+    }
+
+    [Fact]
+    public void The_default_Playback_Hotkey_is_Ctrl_Win_A()
+    {
+        Assert.Equal(new Hotkey(HotkeyModifiers.Control | HotkeyModifiers.Win, 0x41, "Ctrl+Win+A"), Hotkey.PlaybackDefault);
+        Assert.True(Hotkey.TryParse("Ctrl+Win+A", out var parsed));
+        Assert.Equal(parsed, Hotkey.PlaybackDefault);
+    }
+
     private static List<string> Balloons(FakePlatform fake) =>
         fake.Calls.Where(call => call.StartsWith("ShowBalloon(", StringComparison.Ordinal)).ToList();
 }
