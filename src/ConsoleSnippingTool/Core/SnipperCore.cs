@@ -39,12 +39,16 @@ public sealed partial class SnipperCore
     /// 0 until the first Release; incremented when a request is sent.
     private int _dictationSequence;
 
-    /// When the Release sent the audio; the wait the Inserted log line reports is measured from here.
+    /// When the Release sent the audio; the wait the delivery log line reports is measured from here.
     private DateTime _sentAt;
 
     /// The Transcript as the Service returned it, kept while a Cleanup is in flight so a failed Cleanup can still
-    /// Insert what was said (spec: user story 20).
+    /// deliver what was said (spec: user story 20).
     private string? _rawTranscript;
+
+    /// The languages the Service reported with the Transcript in flight, kept from OnTranscript so the delivery log
+    /// line shows them after a Cleanup too; empty when it reported none.
+    private IReadOnlyList<string> _detectedLanguages = [];
 
     /// True between Show and Hide.
     private bool ConsoleShown { get; set; }

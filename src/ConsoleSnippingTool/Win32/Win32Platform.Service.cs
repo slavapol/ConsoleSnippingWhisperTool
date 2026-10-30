@@ -36,7 +36,7 @@ public sealed partial class Win32Platform
         Begin(
             request.ApiKey,
             token => _transport.TranscribeAsync(clip, request, token),
-            text => AttachedCore.OnTranscript(sequence, text),
+            transcript => AttachedCore.OnTranscript(sequence, transcript.Text, transcript.Languages),
             reason => AttachedCore.OnTranscriptionFailed(sequence, reason));
 
     public void BeginCleanup(int sequence, string transcript, CleanupRequest request) =>
@@ -46,17 +46,17 @@ public sealed partial class Win32Platform
             text => AttachedCore.OnCleanedTranscript(sequence, text),
             reason => AttachedCore.OnCleanupFailed(sequence, reason));
 
-    /// Runs the call on the thread pool under the request timeout and posts exactly one of the two outcomes to the
-    /// message loop, after this method has returned.
-    private void Begin(
-        string apiKey, Func<CancellationToken, Task<string>> call, Action<string> succeeded, Action<string> failed) =>
+    /// Runs the call on the thread pool under the request timeout and posts exactly one of the two outcomes, the
+    /// call's result or the failure reason, to the message loop, after this method has returned.
+    private void Begin<TResult>(
+        string apiKey, Func<CancellationToken, Task<TResult>> call, Action<TResult> succeeded, Action<string> failed) =>
         _ = Task.Run(async () =>
         {
-            string text;
+            TResult result;
             try
             {
                 using var timeout = new CancellationTokenSource(RequestTimeout);
-                text = await call(timeout.Token).ConfigureAwait(false);
+                result = await call(timeout.Token).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -65,7 +65,7 @@ public sealed partial class Win32Platform
                 return;
             }
 
-            _window.Post(() => succeeded(text));
+            _window.Post(() => succeeded(result));
         });
 
     /// The failure reason for a call that threw: the timeout for a cancellation, otherwise the exception's own message

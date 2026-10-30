@@ -122,14 +122,16 @@ public sealed partial class SnipperCore
     /// Seconds to one decimal, the way the Console reports audio length and wait (3.0, 4.2), whatever the user's culture.
     private static string Seconds(TimeSpan span) => span.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture);
 
-    /// The Service returned the Transcript of the Dictation with this sequence number.
-    public void OnTranscript(int sequence, string text)
+    /// The Service returned the Transcript of the Dictation with this sequence number, and the languages it detected
+    /// (empty when it reported none), which the delivery log line shows.
+    public void OnTranscript(int sequence, string text, IReadOnlyList<string> detectedLanguages)
     {
         if (!IsCurrent(sequence))
         {
             return;
         }
 
+        _detectedLanguages = detectedLanguages;
         if (string.IsNullOrWhiteSpace(text))
         {
             NothingHeard();
@@ -171,12 +173,20 @@ public sealed partial class SnipperCore
         if (_platform.TryInsertText(text, out var reason))
         {
             _platform.PlaySound(Signal.Done);
-            Log($"Inserted {text.Length} chars in {Seconds(_clock() - _sentAt)} s: {OneLine(text)}");
+            Log($"Inserted {Delivered(text)}");
             return;
         }
 
         Report($"Transcript could not be inserted: {reason}; nothing was pasted");
     }
+
+    /// What the delivery log line says after its verb: the character count, the wait from the Release, the languages
+    /// the Service detected as " [en, ru]" (left out when it reported none) and the text (spec: user story 35).
+    private string Delivered(string text) =>
+        $"{text.Length} chars in {Seconds(_clock() - _sentAt)} s{DetectedLanguagesSuffix()}: {OneLine(text)}";
+
+    private string DetectedLanguagesSuffix() =>
+        _detectedLanguages.Count == 0 ? "" : $" [{string.Join(", ", _detectedLanguages)}]";
 
     /// The Transcript as one Console line: each newline shown as the two characters \n.
     private static string OneLine(string text) => text.Replace("\r\n", @"\n").Replace("\n", @"\n");

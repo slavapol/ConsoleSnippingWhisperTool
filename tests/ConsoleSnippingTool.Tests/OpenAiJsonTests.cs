@@ -11,9 +11,23 @@ namespace ConsoleSnippingTool.Tests;
 public class OpenAiJsonTests
 {
     [Fact]
-    public void The_Transcript_is_the_text_field_of_the_transcription_response()
+    public void The_Transcript_is_the_text_field_of_the_transcription_response_and_the_detected_languages_are_the_code_of_each_languages_entry()
     {
-        Assert.Equal("hello", OpenAiJson.ParseTranscript("""{"text":"hello"}"""));
+        var (text, languages) = OpenAiJson.ParseTranscript("""{"text":"hello, привет","languages":[{"code":"en"},{"code":"ru"}]}""");
+
+        Assert.Equal("hello, привет", text);
+        Assert.Equal(["en", "ru"], languages);
+    }
+
+    [Theory]
+    [InlineData("""{"text":"hello"}""")]
+    [InlineData("""{"text":"hello","languages":[]}""")]
+    public void A_transcription_response_without_languages_or_with_an_empty_list_yields_the_Transcript_and_no_detected_languages(string response)
+    {
+        var (text, languages) = OpenAiJson.ParseTranscript(response);
+
+        Assert.Equal("hello", text);
+        Assert.Empty(languages);
     }
 
     [Fact]

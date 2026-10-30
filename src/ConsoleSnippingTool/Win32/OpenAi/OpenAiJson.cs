@@ -48,9 +48,10 @@ public static class OpenAiJson
         return content;
     }
 
-    /// The Transcript in a transcription response: its "text" field. Throws FormatException, whose message is the
-    /// failure reason, when the body is not JSON or the field is not there.
-    public static string ParseTranscript(string json)
+    /// The Transcript and the languages the Service detected in a transcription response: the "text" field, and the
+    /// "code" of each entry under "languages" (none when that field is absent or empty). Throws FormatException,
+    /// whose message is the failure reason, when the body is not JSON or the text is not there.
+    public static (string Text, IReadOnlyList<string> Languages) ParseTranscript(string json)
     {
         using var document = ParseResponse(json);
         if (document.RootElement.ValueKind != JsonValueKind.Object
@@ -60,7 +61,31 @@ public static class OpenAiJson
             throw new FormatException("response has no \"text\" field");
         }
 
-        return text.GetString()!;
+        return (text.GetString()!, DetectedLanguages(document.RootElement));
+    }
+
+    // The "code" of every languages[] entry that has one. A languages field of another shape, or an entry without a
+    // code, is no detected language and never a failed Dictation: the Transcript is what matters.
+    private static IReadOnlyList<string> DetectedLanguages(JsonElement response)
+    {
+        if (!response.TryGetProperty("languages", out var languages) || languages.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var codes = new List<string>();
+        foreach (var entry in languages.EnumerateArray())
+        {
+            if (entry.ValueKind == JsonValueKind.Object
+                && entry.TryGetProperty("code", out var code)
+                && code.ValueKind == JsonValueKind.String
+                && !string.IsNullOrWhiteSpace(code.GetString()))
+            {
+                codes.Add(code.GetString()!);
+            }
+        }
+
+        return codes;
     }
 
     /// The failure reason for a 4xx or 5xx response: the status code and the first line of the body's error.message,
