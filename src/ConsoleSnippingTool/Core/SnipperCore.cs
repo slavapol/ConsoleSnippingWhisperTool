@@ -35,6 +35,11 @@ public sealed partial class SnipperCore
     /// is opened; the Tap threshold is measured from here (spec: Hotkey, release and Tap).
     private DateTime _listeningSince;
 
+    /// The Source of the Dictation in progress, set on entering Listening and kept through Transcribing, so the
+    /// Release, the ignore lines and the delivery know which Dictation they belong to (Playback Dictation spec: Core
+    /// states and transitions).
+    private DictationSource _source;
+
     /// Numbers each request the Service is sent, so a result from an earlier Dictation is recognised and ignored.
     /// 0 until the first Release; incremented when a request is sent.
     private int _dictationSequence;

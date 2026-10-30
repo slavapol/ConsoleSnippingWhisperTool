@@ -4,7 +4,14 @@ namespace ConsoleSnippingTool.Core;
 
 public sealed partial class SnipperCore
 {
-    private TimeSpan ListeningTimeout => TimeSpan.FromSeconds(_config.ListeningTimeoutSeconds);
+    /// The Listening cap of each Source: dictation.listeningTimeoutSeconds for the Microphone, playbackTimeoutSeconds
+    /// for Playback (Playback Dictation spec: user story 13).
+    private TimeSpan CapFor(DictationSource source) => TimeSpan.FromSeconds(source switch
+    {
+        DictationSource.Microphone => _config.ListeningTimeoutSeconds,
+        DictationSource.Playback => _config.PlaybackTimeoutSeconds,
+        _ => throw new ArgumentOutOfRangeException(nameof(source), source, null),
+    });
 
     /// The Dictation Hotkey went down. Unlike the Capture Hotkey it never toggles: while Listening the repeats of the
     /// held chord are silent, and during the other job or a Transcription the press is one log line (spec: user
@@ -14,7 +21,7 @@ public sealed partial class SnipperCore
         switch (_state)
         {
             case State.Idle:
-                StartListening();
+                StartListening(DictationSource.Microphone);
                 break;
             case State.Listening:
                 break;
@@ -31,11 +38,18 @@ public sealed partial class SnipperCore
     /// The Playback Hotkey was pressed: the first press opens Listening on Playback, the second is its Release.
     public void OnPlaybackHotkey()
     {
-        // Does nothing yet: ticket 03 of Playback Dictation fills it with the spec's transitions.
+        switch (_state)
+        {
+            case State.Idle:
+                StartListening(DictationSource.Playback);
+                break;
+        }
     }
 
-    /// Opens the microphone and starts reading the user's speech; Ready is the one signal that it worked.
-    private void StartListening()
+    /// Opens the Source and starts reading it; Ready is the one signal that it worked. Only the Microphone installs the
+    /// keyboard hook: its Release is a key going up and Esc discards it, while Playback ends on a second press and
+    /// leaves Esc to the user's apps (Playback Dictation spec: user stories 2 and 15).
+    private void StartListening(DictationSource source)
     {
         if (_apiKey is not { } apiKey)
         {
@@ -43,21 +57,26 @@ public sealed partial class SnipperCore
             return;
         }
 
-        // The hold is timed from the press, before the microphone is opened: the user is already holding the chord
-        // while the device opens, so a slow open must never turn a held chord into a Tap.
+        // Listening is timed from the press, before the device is opened, for both Sources: the user's time starts at
+        // the press, so a slow open must never turn a held chord or a second press into a Tap.
         _listeningSince = _clock();
-        if (!_platform.TryOpenSource(DictationSource.Microphone, out var deviceName))
+        if (!_platform.TryOpenSource(source, out var deviceName))
         {
             Report("No microphone found");
             return;
         }
 
-        _platform.StartTimer(ListeningTimeout);
-        _platform.InstallKeyboardHook(_config.DictationHotkey);
+        _source = source;
+        _platform.StartTimer(CapFor(source));
+        if (source == DictationSource.Microphone)
+        {
+            _platform.InstallKeyboardHook(_config.DictationHotkey);
+        }
+
         _platform.WarmUpService(apiKey);
         _platform.PlaySound(Signal.Ready);
         _state = State.Listening;
-        Log(ListeningLine("microphone", deviceName));
+        Log(ListeningLine(source == DictationSource.Microphone ? "microphone" : "playback", deviceName));
     }
 
     /// "Listening (microphone: Headset)", or "Listening (microphone)" when the adapter could not read the device's
